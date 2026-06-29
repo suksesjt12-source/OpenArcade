@@ -44,7 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import off.kys.openarcade.R
-import off.kys.openarcade.ui.app_picker.AppInfo
+import off.kys.openarcade.domain.model.AppInfo
 
 @Composable
 fun AppItem(

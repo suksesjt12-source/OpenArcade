@@ -1,14 +1,15 @@
 package off.kys.openarcade.domain.model
 
 import androidx.compose.runtime.Immutable
+import kotlinx.collections.immutable.ImmutableList
 
 @Immutable
 data class AnalyticsData(
     val totalPlayTimeMs: Long,
-    val dailyTrend: List<PlayTimePoint>,
-    val weeklyTrend: List<PlayTimePoint>,
-    val categoryDistribution: List<CategoryDistribution>,
-    val topGames: List<TopGame>
+    val dailyTrend: ImmutableList<PlayTimePoint>,
+    val weeklyTrend: ImmutableList<PlayTimePoint>,
+    val categoryDistribution: ImmutableList<CategoryDistribution>,
+    val topGames: ImmutableList<TopGame>
 )
 
 @Immutable

@@ -16,21 +16,20 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.SlideTransition
 import off.kys.openarcade.ui.launcher.GamesLauncherScreen
-import off.kys.openarcade.ui.launcher.GamesLauncherViewModel
 import off.kys.openarcade.ui.settings.ScreenOrientation
 import off.kys.openarcade.ui.theme.OpenArcadeTheme
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: GamesLauncherViewModel by viewModel()
+    private val viewModel: AppViewModel by viewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
 
         splashScreen.setKeepOnScreenCondition {
-            viewModel.uiState.value.isLoading || viewModel.uiState.value.filteredGames.isEmpty()
+            !viewModel.uiState.value.isInitialized
         }
 
         enableEdgeToEdge()

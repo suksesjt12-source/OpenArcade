@@ -48,7 +48,6 @@ import off.kys.openarcade.ui.launcher.components.RecentActivitySection
 import off.kys.openarcade.ui.launcher.components.SectionEditBottomSheet
 import off.kys.openarcade.ui.launcher.components.SystemStatusSection
 import off.kys.openarcade.ui.launcher.components.UsagePermissionCard
-import off.kys.openarcade.ui.main.MainActivity
 import off.kys.openarcade.ui.settings.SettingsScreen
 import org.koin.androidx.compose.koinViewModel
 
@@ -59,9 +58,7 @@ class GamesLauncherScreen : Screen {
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val context = LocalContext.current
-        val viewModel: GamesLauncherViewModel = koinViewModel(
-            viewModelStoreOwner = context as MainActivity
-        )
+        val viewModel: GamesLauncherViewModel = koinViewModel()
         val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
         val gridState = rememberLazyGridState()

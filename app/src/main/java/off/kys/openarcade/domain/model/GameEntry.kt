@@ -4,6 +4,8 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.serialization.Serializable
 
 @Entity(tableName = "games")
@@ -18,7 +20,7 @@ data class GameEntry(
     val onPrimaryColorArgb: Int,
     val secondaryColorArgb: Int,
     val tertiaryColorArgb: Int,
-    val customCategories: List<String> = emptyList(),
+    val customCategories: ImmutableList<String> = persistentListOf(),
     val lastPlayed: Long = 0,
     val totalPlayTime: Long = 0,
     val isFavorite: Boolean = false,

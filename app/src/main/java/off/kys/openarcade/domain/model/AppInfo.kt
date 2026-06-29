@@ -1,4 +1,4 @@
-package off.kys.openarcade.ui.app_picker
+package off.kys.openarcade.domain.model
 
 import androidx.compose.runtime.Immutable
 

@@ -4,10 +4,13 @@ import android.app.usage.UsageStatsManager
 import android.content.Context
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.net.toUri
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import off.kys.openarcade.data.local.dao.GameDao
 import off.kys.openarcade.domain.model.AnalyticsData
@@ -30,8 +33,8 @@ class GameRepositoryImpl(
     private val systemRepository: SystemRepository
 ) : GameRepository {
 
-    override fun getGames(): Flow<List<GameEntry>> {
-        return gameDao.getAllGames()
+    override fun getGames(): Flow<ImmutableList<GameEntry>> {
+        return gameDao.getAllGames().map { it.toPersistentList() }
     }
 
     override fun getGameByPackageName(packageName: String): Flow<GameEntry?> {
@@ -65,7 +68,7 @@ class GameRepositoryImpl(
 
             scanned.copy(
                 category = if (existing == null || existing.category == GameCategory.UNDEFINED) scanned.category else existing.category,
-                customCategories = existing?.customCategories ?: emptyList(),
+                customCategories = existing?.customCategories ?: kotlinx.collections.immutable.persistentListOf(),
                 primaryColorArgb = mediaRepository.extractPrimaryColor(icon).toArgb(),
                 lastPlayed = usage?.lastTimeUsed ?: 0L,
                 totalPlayTime = usage?.totalTimeInForeground ?: 0L,
@@ -113,7 +116,7 @@ class GameRepositoryImpl(
     }
 
     override suspend fun updateCustomCategories(packageName: String, customCategories: List<String>) = withContext(Dispatchers.IO) {
-        gameDao.updateCustomCategories(packageName, customCategories)
+        gameDao.updateCustomCategories(packageName, customCategories.toPersistentList())
     }
 
     override suspend fun updateFavoriteStatus(packageName: String, isFavorite: Boolean) = withContext(Dispatchers.IO) {
@@ -219,10 +222,10 @@ class GameRepositoryImpl(
 
         emit(AnalyticsData(
             totalPlayTimeMs = allStats.values.sumOf { it.totalTimeInForeground },
-            dailyTrend = dailyTrend,
-            weeklyTrend = weeklyTrend,
-            categoryDistribution = categoryDistribution,
-            topGames = topGames
+            dailyTrend = dailyTrend.toPersistentList(),
+            weeklyTrend = weeklyTrend.toPersistentList(),
+            categoryDistribution = categoryDistribution.toPersistentList(),
+            topGames = topGames.toPersistentList()
         ))
     }.flowOn(Dispatchers.Default)
 }

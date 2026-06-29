@@ -28,21 +28,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import off.kys.openarcade.domain.model.TopGame
-import off.kys.openarcade.domain.repository.MediaRepository
 import off.kys.openarcade.ui.components.ArcadeCard
-import org.koin.compose.koinInject
 
 @Composable
 fun TopGameItem(
     game: TopGame,
     maxPlayTime: Long,
-    isDark: Boolean,
-    modifier: Modifier = Modifier,
-    mediaRepository: MediaRepository = koinInject()
+    accentColor: Color,
+    modifier: Modifier = Modifier
 ) {
-    val gameColor = remember(game.primaryColorArgb, isDark) {
-        mediaRepository.getAdaptiveColor(Color(game.primaryColorArgb), isDark)
-    }
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
 
     val progressTarget = remember(game.playTimeMs, maxPlayTime) {
@@ -57,7 +51,7 @@ fun TopGameItem(
 
     ArcadeCard(
         modifier = modifier.fillMaxWidth(),
-        accentColor = gameColor
+        accentColor = accentColor
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
@@ -77,7 +71,7 @@ fun TopGameItem(
                 Text(
                     text = formattedTime,
                     style = MaterialTheme.typography.bodySmall,
-                    color = gameColor
+                    color = accentColor
                 )
             }
 
@@ -88,12 +82,12 @@ fun TopGameItem(
                     .width(72.dp)
                     .height(6.dp)
                     .clip(CircleShape)
-                    .background(gameColor.copy(alpha = 0.15f))
+                    .background(accentColor.copy(alpha = 0.15f))
                     .border(
                         width = 1.dp,
                         brush = Brush.horizontalGradient(
                             listOf(
-                                gameColor.copy(alpha = 0.30f),
+                                accentColor.copy(alpha = 0.30f),
                                 Color.Transparent
                             )
                         ),
@@ -108,7 +102,7 @@ fun TopGameItem(
                         .background(
                             Brush.horizontalGradient(
                                 listOf(
-                                    gameColor.copy(alpha = 0.95f),
+                                    accentColor.copy(alpha = 0.95f),
                                     tertiaryColor.copy(alpha = 0.55f)
                                 )
                             )

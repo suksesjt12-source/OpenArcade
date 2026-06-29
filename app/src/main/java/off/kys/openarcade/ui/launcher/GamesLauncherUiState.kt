@@ -1,5 +1,9 @@
 package off.kys.openarcade.ui.launcher
 
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableSet
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toPersistentSet
 import off.kys.openarcade.domain.model.GameEntry
 import off.kys.openarcade.domain.model.GameFilter
 import off.kys.openarcade.domain.model.GameSortOption
@@ -8,13 +12,13 @@ import off.kys.openarcade.ui.settings.GridColumns
 import off.kys.openarcade.ui.settings.ScreenOrientation
 
 data class GamesLauncherUiState(
-    val filteredGames: List<GameEntry> = emptyList(),
-    val favoriteGames: List<GameEntry> = emptyList(),
-    val recentGames: List<GameEntry> = emptyList(),
-    val filters: List<GameFilter> = listOf(GameFilter.All),
+    val filteredGames: ImmutableList<GameEntry> = persistentListOf(),
+    val favoriteGames: ImmutableList<GameEntry> = persistentListOf(),
+    val recentGames: ImmutableList<GameEntry> = persistentListOf(),
+    val filters: ImmutableList<GameFilter> = persistentListOf(GameFilter.All),
     val selectedFilter: GameFilter = GameFilter.All,
     val selectedSort: GameSortOption = GameSortOption.TITLE_ASC,
-    val visibleSections: Set<LauncherSection> = LauncherSection.entries.toSet(),
+    val visibleSections: ImmutableSet<LauncherSection> = LauncherSection.entries.toPersistentSet(),
     val gridColumns: GridColumns = GridColumns.Three,
     val screenOrientation: ScreenOrientation = ScreenOrientation.Auto,
     val immersiveMode: Boolean = false,

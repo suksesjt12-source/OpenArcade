@@ -1,21 +1,9 @@
 package off.kys.openarcade.ui.launcher
 
-import android.app.AppOpsManager
-import android.app.Application
-import android.app.usage.StorageStatsManager
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.os.BatteryManager
-import android.os.Build
-import android.os.Process
-import android.os.StatFs
-import android.os.storage.StorageManager
-import android.util.Log
-import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toPersistentSet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,30 +19,36 @@ import off.kys.openarcade.domain.model.GameEntry
 import off.kys.openarcade.domain.model.GameFilter
 import off.kys.openarcade.domain.model.GameSortOption
 import off.kys.openarcade.domain.model.LauncherSection
-import off.kys.openarcade.domain.repository.GameRepository
-import off.kys.openarcade.domain.usecase.GetGamesUseCase
-import off.kys.openarcade.domain.usecase.RefreshAllGameStatsUseCase
-import off.kys.openarcade.domain.usecase.RefreshGamesUseCase
-import off.kys.openarcade.ui.settings.GridColumns
-import off.kys.openarcade.ui.settings.ScreenOrientation
-import java.io.File
+import off.kys.openarcade.domain.usecase.*
 
 class GamesLauncherViewModel(
-    private val application: Application,
     private val refreshGamesUseCase: RefreshGamesUseCase,
     private val refreshAllGameStatsUseCase: RefreshAllGameStatsUseCase,
-    private val gameRepository: GameRepository,
-    private val prefs: ArcadePreferences,
-    getGamesUseCase: GetGamesUseCase
+    private val getGamesUseCase: GetGamesUseCase,
+    private val getSystemStatusUseCase: GetSystemStatusUseCase,
+    private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
+    private val updateVisibilityUseCase: UpdateVisibilityUseCase,
+    private val renameGameUseCase: RenameGameUseCase,
+    private val updateGameIconUseCase: UpdateGameIconUseCase,
+    private val addGamesUseCase: AddGamesUseCase,
+    private val prefs: ArcadePreferences
 ) : ViewModel() {
 
     private val selectedFilter = MutableStateFlow<GameFilter>(GameFilter.All)
+    private val isLoading = MutableStateFlow(true)
 
     private val allGames: StateFlow<List<GameEntry>> = getGamesUseCase()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
+        )
+
+    private val systemStatus = getSystemStatusUseCase()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = off.kys.openarcade.domain.model.SystemStatus()
         )
 
     private val availableFilters: StateFlow<List<GameFilter>> = allGames.map { games ->
@@ -87,16 +81,11 @@ class GamesLauncherViewModel(
             initialValue = listOf(GameFilter.All)
         )
 
-    private val batteryLevel = MutableStateFlow(0)
-    private val storageUsage = MutableStateFlow(0)
-    private val hasUsageStatsPermission = MutableStateFlow(true)
-    private val isLoading = MutableStateFlow(true)
-
-    @Suppress("UNCHECKED_CAST")
     val uiState: StateFlow<GamesLauncherUiState> = combine(
         allGames,
         availableFilters,
         selectedFilter,
+        systemStatus,
         prefs.selectedSort,
         prefs.visibleSections,
         prefs.gridColumns,
@@ -105,26 +94,21 @@ class GamesLauncherViewModel(
         prefs.keepScreenOn,
         prefs.showScrollbar,
         prefs.hapticFeedback,
-        batteryLevel,
-        storageUsage,
-        hasUsageStatsPermission,
         isLoading
     ) { params ->
         val all = params[0] as List<GameEntry>
         val filters = params[1] as List<GameFilter>
         val selected = params[2] as GameFilter
-        val sort = params[3] as GameSortOption
-        val sections = params[4] as Set<LauncherSection>
-        val gridCols = params[5] as GridColumns
-        val orientation = params[6] as ScreenOrientation
-        val immersive = params[7] as Boolean
-        val keepOn = params[8] as Boolean
-        val scrollbar = params[9] as Boolean
-        val haptic = params[10] as Boolean
-        val battery = params[11] as Int
-        val storage = params[12] as Int
-        val permission = params[13] as Boolean
-        val loading = params[14] as Boolean
+        val status = params[3] as off.kys.openarcade.domain.model.SystemStatus
+        val sort = params[4] as GameSortOption
+        val sections = params[5] as Set<LauncherSection>
+        val gridCols = off.kys.openarcade.ui.settings.GridColumns.entries.firstOrNull { it == params[6] } ?: off.kys.openarcade.ui.settings.GridColumns.Three
+        val orientation = off.kys.openarcade.ui.settings.ScreenOrientation.entries.firstOrNull { it == params[7] } ?: off.kys.openarcade.ui.settings.ScreenOrientation.Auto
+        val immersive = params[8] as Boolean
+        val keepOn = params[9] as Boolean
+        val scrollbar = params[10] as Boolean
+        val haptic = params[11] as Boolean
+        val loading = params[12] as Boolean
 
         val visibleGames = all.filter { !it.isHidden }
 
@@ -152,22 +136,22 @@ class GamesLauncherViewModel(
             .take(5)
 
         GamesLauncherUiState(
-            filteredGames = sorted,
-            favoriteGames = favorites,
-            recentGames = recent,
-            filters = filters,
+            filteredGames = sorted.toPersistentList(),
+            favoriteGames = favorites.toPersistentList(),
+            recentGames = recent.toPersistentList(),
+            filters = filters.toPersistentList(),
             selectedFilter = selected,
             selectedSort = sort,
-            visibleSections = sections,
+            visibleSections = sections.toPersistentSet(),
             gridColumns = gridCols,
             screenOrientation = orientation,
             immersiveMode = immersive,
             keepScreenOn = keepOn,
             showScrollbar = scrollbar,
             hapticFeedback = haptic,
-            batteryLevel = battery,
-            storageUsage = storage,
-            hasUsageStatsPermission = permission,
+            batteryLevel = status.batteryLevel,
+            storageUsage = status.storageUsagePercentage,
+            hasUsageStatsPermission = status.hasUsageStatsPermission,
             isLoading = loading
         )
     }.flowOn(Dispatchers.Default)
@@ -177,26 +161,8 @@ class GamesLauncherViewModel(
             initialValue = GamesLauncherUiState()
         )
 
-    private val batteryReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            val level = intent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
-            val scale = intent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
-            if (level != -1 && scale != -1) {
-                batteryLevel.value = (level * 100 / scale.toFloat()).toInt()
-            }
-        }
-    }
-
     init {
         refreshGames()
-        updateStorageInfo()
-        updatePermissionStatus()
-        val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-        application.registerReceiver(batteryReceiver, filter)
-    }
-
-    override fun onCleared() {
-        application.unregisterReceiver(batteryReceiver)
     }
 
     fun onEvent(event: GamesLauncherUiEvent) = when (event) {
@@ -213,67 +179,41 @@ class GamesLauncherViewModel(
         }
 
         is GamesLauncherUiEvent.RefreshRequested -> refreshGames()
-        is GamesLauncherUiEvent.GameClicked -> Log.d(
-            "GamesLauncher",
-            "Game clicked: ${event.packageName}"
-        )
-
-        is GamesLauncherUiEvent.GrantPermissionClicked -> Log.d(
-            "GamesLauncher",
-            "Grant permission clicked"
-        )
-
-        is GamesLauncherUiEvent.PermissionCheckRequested -> updatePermissionStatus()
+        is GamesLauncherUiEvent.GameClicked -> { /* Handled by UI */ }
+        is GamesLauncherUiEvent.GrantPermissionClicked -> { /* Handled by UI */ }
+        is GamesLauncherUiEvent.PermissionCheckRequested -> { /* Handled by status flow */ }
         is GamesLauncherUiEvent.RefreshStats -> refreshStats()
 
         is GamesLauncherUiEvent.FavoriteToggled -> {
             viewModelScope.launch {
-                gameRepository.updateFavoriteStatus(event.packageName, event.isFavorite)
+                toggleFavoriteUseCase(event.packageName, event.isFavorite)
             }
         }
 
         is GamesLauncherUiEvent.VisibilityToggled -> {
             viewModelScope.launch {
-                gameRepository.updateVisibility(event.packageName, event.isHidden)
+                updateVisibilityUseCase(event.packageName, event.isHidden)
             }
         }
 
         is GamesLauncherUiEvent.RenameRequested -> {
             viewModelScope.launch {
-                gameRepository.updateCustomTitle(event.packageName, event.newTitle?.takeIf { it.isNotBlank() })
+                renameGameUseCase(event.packageName, event.newTitle?.takeIf { it.isNotBlank() })
             }
         }
 
         is GamesLauncherUiEvent.ChangeIconRequested -> {
             viewModelScope.launch {
-                gameRepository.updateCustomIconPath(event.packageName, event.newIconPath)
+                updateGameIconUseCase(event.packageName, event.newIconPath)
             }
         }
 
-        is GamesLauncherUiEvent.AppInfoRequested -> {
-            // Handled by UI via intent
-        }
-
-        is GamesLauncherUiEvent.UninstallRequested -> {
-            // Handled by UI via intent
-        }
+        is GamesLauncherUiEvent.AppInfoRequested -> { /* Handled by UI */ }
+        is GamesLauncherUiEvent.UninstallRequested -> { /* Handled by UI */ }
 
         is GamesLauncherUiEvent.AddGamesRequested -> {
             viewModelScope.launch {
-                event.packageNames.forEach { pkg ->
-                    gameRepository.addGame(
-                        GameEntry(
-                            packageName = pkg,
-                            title = "",
-                            category = GameCategory.UTILITY,
-                            primaryColorArgb = 0,
-                            onPrimaryColorArgb = 0,
-                            secondaryColorArgb = 0,
-                            tertiaryColorArgb = 0,
-                            isManuallyAdded = true
-                        )
-                    )
-                }
+                addGamesUseCase(event.packageNames)
                 refreshGames()
             }
         }
@@ -294,60 +234,5 @@ class GamesLauncherViewModel(
         viewModelScope.launch {
             refreshAllGameStatsUseCase()
         }
-    }
-
-    private fun updateStorageInfo() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            updateStorageInfoOreo()
-        } else {
-            updateStorageInfoLegacy()
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun updateStorageInfoOreo() {
-        try {
-            val storageStatsManager =
-                application.getSystemService(Context.STORAGE_STATS_SERVICE) as StorageStatsManager
-            val totalBytes = storageStatsManager.getTotalBytes(StorageManager.UUID_DEFAULT)
-            val freeBytes = storageStatsManager.getFreeBytes(StorageManager.UUID_DEFAULT)
-            val usedBytes = totalBytes - freeBytes
-            storageUsage.value = (usedBytes.toFloat() / totalBytes * 100).toInt()
-        } catch (_: Exception) {
-            updateStorageInfoLegacy()
-        }
-    }
-
-    private fun updateStorageInfoLegacy() {
-        try {
-            val stat = StatFs(File("/data").path)
-            val totalBytes = stat.blockCountLong * stat.blockSizeLong
-            val availableBytes = stat.availableBlocksLong * stat.blockSizeLong
-            val usedBytes = totalBytes - availableBytes
-            storageUsage.value = (usedBytes.toFloat() / totalBytes * 100).toInt()
-        } catch (_: Exception) {
-            storageUsage.value = 0
-        }
-    }
-
-    private fun updatePermissionStatus() {
-        val wasGranted = hasUsageStatsPermission.value
-        val isNowGranted = hasUsageStatsPermission()
-        hasUsageStatsPermission.value = isNowGranted
-
-        if (!wasGranted && isNowGranted) {
-            refreshGames()
-            Log.d("GamesLauncher", "Usage stats permission granted - refreshing games")
-        }
-    }
-
-    private fun hasUsageStatsPermission(): Boolean {
-        val appOps = application.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-        val mode = appOps.checkOpNoThrow(
-            AppOpsManager.OPSTR_GET_USAGE_STATS,
-            Process.myUid(),
-            application.packageName
-        )
-        return mode == AppOpsManager.MODE_ALLOWED
     }
 }

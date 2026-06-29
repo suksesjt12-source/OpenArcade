@@ -43,6 +43,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.collections.immutable.persistentListOf
 import off.kys.openarcade.R
 import off.kys.openarcade.domain.model.GameCategory
 import off.kys.openarcade.domain.model.GameFilter
@@ -359,7 +360,7 @@ fun FilterChipsRowPreview() {
     OpenArcadeTheme {
         FilterChipsRow(
             uiState = GamesLauncherUiState(
-                filters = listOf(
+                filters = persistentListOf(
                     GameFilter.All,
                     GameFilter.Installed,
                     GameFilter.Uninstalled,

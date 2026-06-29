@@ -1,6 +1,8 @@
 package off.kys.openarcade.data.local
 
 import androidx.room.TypeConverter
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.serialization.json.Json
 import off.kys.openarcade.domain.model.GameCategory
 
@@ -12,12 +14,12 @@ class Converters {
     fun toCategory(value: String): GameCategory = GameCategory.valueOf(value)
 
     @TypeConverter
-    fun fromStringList(value: List<String>): String = Json.encodeToString(value)
+    fun fromStringList(value: ImmutableList<String>): String = Json.encodeToString(value.toList())
 
     @TypeConverter
-    fun toStringList(value: String): List<String> = try {
-        Json.decodeFromString(value)
+    fun toStringList(value: String): ImmutableList<String> = try {
+        Json.decodeFromString<List<String>>(value).toImmutableList()
     } catch (_: Exception) {
-        emptyList()
+        kotlinx.collections.immutable.persistentListOf()
     }
 }

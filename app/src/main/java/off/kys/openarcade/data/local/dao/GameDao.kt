@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
+import kotlinx.collections.immutable.ImmutableList
 import off.kys.openarcade.domain.model.GameEntry
 
 @Dao
@@ -19,7 +20,7 @@ interface GameDao {
     suspend fun insertGames(games: List<GameEntry>)
 
     @Query("UPDATE games SET customCategories = :customCategories WHERE packageName = :packageName")
-    suspend fun updateCustomCategories(packageName: String, customCategories: List<String>)
+    suspend fun updateCustomCategories(packageName: String, customCategories: ImmutableList<String>)
 
     @Query("UPDATE games SET lastPlayed = :lastPlayed, totalPlayTime = :totalPlayTime WHERE packageName = :packageName")
     suspend fun updatePlayStats(packageName: String, lastPlayed: Long, totalPlayTime: Long)

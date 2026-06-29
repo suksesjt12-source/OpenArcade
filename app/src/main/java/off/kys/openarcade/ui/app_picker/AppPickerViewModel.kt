@@ -1,24 +1,28 @@
 package off.kys.openarcade.ui.app_picker
 
-import android.app.Application
-import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toPersistentMap
+import kotlinx.collections.immutable.toPersistentSet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import off.kys.openarcade.data.local.ArcadePreferences
-import off.kys.openarcade.domain.model.GameCategory
-import off.kys.openarcade.domain.model.GameEntry
-import off.kys.openarcade.domain.repository.GameRepository
+import off.kys.openarcade.domain.usecase.AddGamesUseCase
+import off.kys.openarcade.domain.usecase.GetAppListUseCase
+import off.kys.openarcade.domain.usecase.GetGamesUseCase
 import off.kys.openarcade.domain.usecase.RefreshGamesUseCase
+import off.kys.openarcade.domain.usecase.UpdateVisibilityUseCase
 
 class AppPickerViewModel(
-    private val application: Application,
-    private val gameRepository: GameRepository,
+    private val getAppListUseCase: GetAppListUseCase,
+    private val addGamesUseCase: AddGamesUseCase,
+    private val updateVisibilityUseCase: UpdateVisibilityUseCase,
     private val refreshGamesUseCase: RefreshGamesUseCase,
+    private val getGamesUseCase: GetGamesUseCase,
     private val prefs: ArcadePreferences
 ) : ViewModel() {
 
@@ -46,30 +50,17 @@ class AppPickerViewModel(
 
     private fun observeTrackedGames() {
         viewModelScope.launch {
-            gameRepository.getGames().collect { games ->
+            getGamesUseCase().collect { games ->
                 val tracked = games.associate { it.packageName to it.isHidden }
-                _uiState.update { it.copy(trackedPackages = tracked) }
+                _uiState.update { it.copy(trackedPackages = tracked.toPersistentMap()) }
             }
         }
     }
 
     private fun loadApps() {
         viewModelScope.launch(Dispatchers.IO) {
-            val pm = application.packageManager
-            val intent = Intent(Intent.ACTION_MAIN, null).apply {
-                addCategory(Intent.CATEGORY_LAUNCHER)
-            }
-            val apps = pm.queryIntentActivities(intent, 0)
-                .map {
-                    AppInfo(
-                        packageName = it.activityInfo.packageName,
-                        label = it.loadLabel(pm).toString()
-                    )
-                }
-                .distinctBy { it.packageName }
-                .sortedBy { it.label.lowercase() }
-
-            _uiState.update { it.copy(apps = apps, isLoading = false) }
+            val apps = getAppListUseCase()
+            _uiState.update { it.copy(apps = apps.toPersistentList(), isLoading = false) }
         }
     }
 
@@ -86,7 +77,7 @@ class AppPickerViewModel(
                     } else {
                         newSelection.add(event.packageName)
                     }
-                    state.copy(selectedPackages = newSelection)
+                    state.copy(selectedPackages = newSelection.toPersistentSet())
                 }
             }
             AppPickerUiEvent.AddSelectedApps -> {
@@ -101,25 +92,23 @@ class AppPickerViewModel(
 
         _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
+            val packagesToUpdateVisibility = mutableListOf<String>()
+            val packagesToAdd = mutableListOf<String>()
+
             selected.forEach { pkg ->
                 val isTracked = _uiState.value.trackedPackages.containsKey(pkg)
                 if (isTracked) {
-                    gameRepository.updateVisibility(pkg, false)
+                    packagesToUpdateVisibility.add(pkg)
                 } else {
-                    gameRepository.addGame(
-                        GameEntry(
-                            packageName = pkg,
-                            title = "", // Will be updated by scanner
-                            category = GameCategory.UTILITY,
-                            primaryColorArgb = 0,
-                            onPrimaryColorArgb = 0,
-                            secondaryColorArgb = 0,
-                            tertiaryColorArgb = 0,
-                            isManuallyAdded = true
-                        )
-                    )
+                    packagesToAdd.add(pkg)
                 }
             }
+
+            packagesToUpdateVisibility.forEach { updateVisibilityUseCase(it, false) }
+            if (packagesToAdd.isNotEmpty()) {
+                addGamesUseCase(packagesToAdd)
+            }
+
             refreshGamesUseCase()
             _uiState.update { it.copy(isDone = true, isLoading = false) }
         }
