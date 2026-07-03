@@ -1,8 +1,20 @@
 # OpenArcade
 
+![Version](https://img.shields.io/badge/version-1.0.2-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Android](https://img.shields.io/badge/Android-6.0%2B-brightgreen)
+[![Donate via Liberapay](https://img.shields.io/liberapay/receives/kys0ff.svg?logo=liberapay)](https://liberapay.com/kys0ff/donate)
+
 OpenArcade is a sophisticated, arcade-inspired game launcher meticulously crafted for Android. It
 serves as a centralized command center for your entire mobile gaming collection, blending a refined
 aesthetic with powerful customization and deep play-time insights.
+
+## Recent Changes (1.0.2)
+
+- **Fast Launch**: New "Skip Game Details" toggle for immediate gaming.
+- **Tag Management**: Easier library organization via context menus.
+- **Infrastructure**: Major architectural refactor to feature-based modules for better performance.
+- **Licenses**: New dynamic open-source attribution screen.
 
 ## Core Features
 
@@ -39,23 +51,6 @@ maintainability:
 - **[Palette API](https://developer.android.com/develop/ui/views/graphics/palette)** - Delivers a
   modern design language with sophisticated color extraction for dynamic interface adaptation.
 
-## Project Structure
-
-```text
-app/src/main/java/off/kys/openarcade/
-├── analytics/    # Comprehensive tracking and statistical engines
-├── data/         # Data persistence layer and repository implementations
-├── di/           # Dependency injection modules and configuration
-├── domain/       # Pure business logic, entity models, and use cases
-├── service/      # Essential background services and lifecycle management
-├── ui/           # Multi-layered Jetpack Compose presentation layer
-│   ├── detail/   # Immersive game information and action views
-│   ├── launcher/ # Primary interactive library interface
-│   ├── main/     # Application entry point and navigation orchestration
-│   └── theme/    # Sophisticated Material 3 design system implementation
-└── util/         # Foundational utility functions and extensions
-```
-
 ## Getting Started
 
 ### Prerequisites
@@ -76,8 +71,15 @@ app/src/main/java/off/kys/openarcade/
 
 ## Releases
 
+- **[1.0.2](https://github.com/kys0ff/OpenArcade/releases/tag/v1.0.2)** - Architecture refactor, fast-launch settings, and enhanced tag management.
 - **[1.0.0](https://github.com/kys0ff/OpenArcade/releases/tag/v1.0.0)** - The inaugural release
   featuring core library management, automated play-time tracking, and adaptive dynamic theming.
+
+## Support & Donation
+
+If you find OpenArcade useful, please consider supporting the project:
+
+- **Liberapay**: [Donate to kys0ff](https://liberapay.com/kys0ff/donate)
 
 ## License
 
