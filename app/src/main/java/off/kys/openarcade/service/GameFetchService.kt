@@ -7,7 +7,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import off.kys.openarcade.domain.repository.GameRepository
+import off.kys.openarcade.core.domain.repository.GameRepository
 import org.koin.android.ext.android.inject
 
 class GameFetchService : Service() {

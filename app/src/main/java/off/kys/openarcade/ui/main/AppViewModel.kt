@@ -6,9 +6,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import off.kys.openarcade.data.local.ArcadePreferences
-import off.kys.openarcade.domain.usecase.GetGamesUseCase
-import off.kys.openarcade.ui.settings.ScreenOrientation
+import off.kys.openarcade.core.data.local.preferences.ArcadePreferences
+import off.kys.openarcade.core.domain.usecase.GetGamesUseCase
+import off.kys.openarcade.features.settings.ui.ScreenOrientation
 
 data class AppUiState(
     val immersiveMode: Boolean = false,

@@ -15,9 +15,9 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.SlideTransition
-import off.kys.openarcade.ui.launcher.GamesLauncherScreen
-import off.kys.openarcade.ui.settings.ScreenOrientation
-import off.kys.openarcade.ui.theme.OpenArcadeTheme
+import off.kys.openarcade.features.games_launcher.ui.GamesLauncherScreen
+import off.kys.openarcade.features.settings.ui.ScreenOrientation
+import off.kys.openarcade.core.ui.theme.OpenArcadeTheme
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MainActivity : ComponentActivity() {
