@@ -47,28 +47,29 @@ class GamesLauncherViewModel(
 ) : ViewModel() {
 
     private val selectedFilter = MutableStateFlow<GameFilter>(GameFilter.All)
-    private val isLoading = MutableStateFlow(true)
+    private val isLoading = MutableStateFlow(false)
     private val _tagState = MutableStateFlow(TagDialogState())
 
     private val allGames: StateFlow<List<GameEntry>> = getGamesUseCase()
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
+            started = SharingStarted.Eagerly,
             initialValue = emptyList()
         )
 
     private val systemStatus = getSystemStatusUseCase()
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
+            started = SharingStarted.Eagerly,
             initialValue = off.kys.openarcade.core.domain.model.SystemStatus()
         )
 
     private val availableFilters: StateFlow<List<GameFilter>> = allGames.map { games ->
         val filters = mutableListOf<GameFilter>()
         if (games.isNotEmpty()) {
+            filters.add(GameFilter.All)
+            filters.add(GameFilter.Installed)
             if (games.any { !it.isInstalled }) {
-                filters.add(GameFilter.Installed)
                 filters.add(GameFilter.Uninstalled)
             }
         }
@@ -86,7 +87,7 @@ class GamesLauncherViewModel(
     }.flowOn(Dispatchers.Default)
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
+            started = SharingStarted.Eagerly,
             initialValue = listOf(GameFilter.All)
         )
 
@@ -196,13 +197,9 @@ class GamesLauncherViewModel(
     }.flowOn(Dispatchers.Default)
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
+            started = SharingStarted.Eagerly,
             initialValue = GamesLauncherUiState()
         )
-
-    init {
-        refreshGames()
-    }
 
     fun onEvent(event: GamesLauncherUiEvent) = when (event) {
         is GamesLauncherUiEvent.FilterSelected -> {

@@ -35,9 +35,9 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import off.kys.openarcade.core.domain.model.LauncherSection
-import off.kys.openarcade.features.app_picker.ui.AppPickerScreen
 import off.kys.openarcade.core.ui.components.ArcadeGridScrollbar
 import off.kys.openarcade.core.ui.components.GameTagDialog
+import off.kys.openarcade.features.app_picker.ui.AppPickerScreen
 import off.kys.openarcade.features.game_details.ui.GameDetailScreen
 import off.kys.openarcade.features.games_launcher.ui.components.AnalyticsSection
 import off.kys.openarcade.features.games_launcher.ui.components.EmptyGamesState
@@ -52,6 +52,7 @@ import off.kys.openarcade.features.games_launcher.ui.components.SystemStatusSect
 import off.kys.openarcade.features.games_launcher.ui.components.UsagePermissionCard
 import off.kys.openarcade.features.settings.ui.SettingsScreen
 import off.kys.openarcade.ui.main.AppViewModel
+import off.kys.openarcade.ui.main.MainActivity
 import org.koin.androidx.compose.koinViewModel
 
 class GamesLauncherScreen : Screen {
@@ -62,7 +63,9 @@ class GamesLauncherScreen : Screen {
         val navigator = LocalNavigator.currentOrThrow
         val context = LocalContext.current
         val viewModel: GamesLauncherViewModel = koinViewModel()
-        val appViewModel: AppViewModel = koinViewModel()
+        val appViewModel: AppViewModel = koinViewModel(
+            viewModelStoreOwner = context as MainActivity
+        )
         val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
         val gridState = rememberLazyGridState()
