@@ -4,8 +4,8 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import kotlinx.coroutines.flow.Flow
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.coroutines.flow.Flow
 import off.kys.openarcade.core.domain.model.GameEntry
 
 @Dao
@@ -34,8 +34,8 @@ interface GameDao {
     @Query("UPDATE games SET customIconPath = :customIconPath WHERE packageName = :packageName")
     suspend fun updateCustomIconPath(packageName: String, customIconPath: String?)
 
-    @Query("UPDATE games SET isHidden = :isHidden WHERE packageName = :packageName")
-    suspend fun updateVisibility(packageName: String, isHidden: Boolean)
+    @Query("DELETE FROM games WHERE packageName = :packageName")
+    suspend fun deleteGame(packageName: String)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertGame(game: GameEntry)

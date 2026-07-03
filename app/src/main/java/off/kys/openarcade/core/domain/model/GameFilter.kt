@@ -6,5 +6,4 @@ sealed class GameFilter {
     data object Uninstalled : GameFilter()
     data class System(val category: GameCategory) : GameFilter()
     data class Custom(val name: String) : GameFilter()
-    data object Hidden : GameFilter()
 }

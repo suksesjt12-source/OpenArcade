@@ -50,7 +50,11 @@ fun CategoryDistributionSection(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     data.take(4).forEachIndexed { index, dist ->
                         CategoryLegendItem(
-                            categoryName = stringResource(dist.category.displayNameRes),
+                            categoryName = if (dist.category.displayNameRes != 0) {
+                                stringResource(dist.category.displayNameRes)
+                            } else {
+                                stringResource(R.string.category_game)
+                            },
                             percentage = (dist.percentage * 100).toInt(),
                             color = donutColors[index % donutColors.size]
                         )

@@ -9,28 +9,40 @@ import off.kys.openarcade.core.data.repository.SystemRepositoryImpl
 import off.kys.openarcade.core.domain.repository.GameRepository
 import off.kys.openarcade.core.domain.repository.MediaRepository
 import off.kys.openarcade.core.domain.repository.SystemRepository
-import off.kys.openarcade.core.domain.usecase.*
+import off.kys.openarcade.core.domain.usecase.AddGamesUseCase
+import off.kys.openarcade.core.domain.usecase.GetGamesUseCase
+import off.kys.openarcade.core.domain.usecase.GetSystemStatusUseCase
+import off.kys.openarcade.core.domain.usecase.RefreshGamesUseCase
+import off.kys.openarcade.core.domain.usecase.RemoveGameUseCase
+import off.kys.openarcade.core.util.ColorExtractor
+import off.kys.openarcade.core.util.GameScanner
+import off.kys.openarcade.core.util.IconManager
+import off.kys.openarcade.core.util.TimeUtils
 import off.kys.openarcade.features.analytics.domain.GetAnalyticsDataUseCase
+import off.kys.openarcade.features.analytics.ui.AnalyticsViewModel
 import off.kys.openarcade.features.app_picker.domain.GetAppListUseCase
+import off.kys.openarcade.features.app_picker.ui.AppPickerViewModel
 import off.kys.openarcade.features.game_details.domain.GetGameByPackageUseCase
 import off.kys.openarcade.features.game_details.domain.LaunchGameUseCase
 import off.kys.openarcade.features.game_details.domain.RefreshGameStatsUseCase
-import off.kys.openarcade.features.games_launcher.domain.*
-import off.kys.openarcade.features.analytics.ui.AnalyticsViewModel
-import off.kys.openarcade.features.app_picker.ui.AppPickerViewModel
 import off.kys.openarcade.features.game_details.ui.GameDetailViewModel
+import off.kys.openarcade.features.games_launcher.domain.RefreshAllGameStatsUseCase
+import off.kys.openarcade.features.games_launcher.domain.RenameGameUseCase
+import off.kys.openarcade.features.games_launcher.domain.ToggleFavoriteUseCase
+import off.kys.openarcade.features.games_launcher.domain.UpdateGameCategoryUseCase
+import off.kys.openarcade.features.games_launcher.domain.UpdateGameIconUseCase
 import off.kys.openarcade.features.games_launcher.ui.GamesLauncherViewModel
-import off.kys.openarcade.ui.main.AppViewModel
 import off.kys.openarcade.features.settings.ui.SettingsViewModel
-import off.kys.openarcade.core.util.*
+import off.kys.openarcade.ui.main.AppViewModel
 import org.koin.android.ext.koin.androidApplication
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.factoryOf
-import org.koin.core.module.dsl.viewModelOf
 import org.koin.core.module.dsl.viewModel
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
-val appModule = module {
+// 1. Data Sub-Module (Database, Prefs, Repositories)
+val dataModule = module {
     single {
         Room.databaseBuilder(
             androidContext(),
@@ -41,19 +53,23 @@ val appModule = module {
     }
 
     single { get<AppDatabase>().gameDao() }
-
     single { ArcadePreferences(androidContext()) }
 
+    single<MediaRepository> { MediaRepositoryImpl(get(), get()) }
+    single<SystemRepository> { SystemRepositoryImpl(androidApplication(), get()) }
+    single<GameRepository> { GameRepositoryImpl(androidContext(), get(), get(), get()) }
+}
+
+// 2. Core Utilities Sub-Module
+val utilityModule = module {
     single { IconManager(androidContext()) }
     single { ColorExtractor() }
     single { GameScanner(androidContext()) }
     single { TimeUtils(androidContext()) }
+}
 
-    single<MediaRepository> { MediaRepositoryImpl(get(), get()) }
-    single<SystemRepository> { SystemRepositoryImpl(androidApplication(), get()) }
-
-    single<GameRepository> { GameRepositoryImpl(androidContext(), get(), get(), get()) }
-
+// 3. Domain Sub-Module (Use Cases / Business Logic)
+val domainModule = module {
     factoryOf(::GetGamesUseCase)
     factoryOf(::RefreshGamesUseCase)
     factoryOf(::RefreshGameStatsUseCase)
@@ -64,12 +80,15 @@ val appModule = module {
     factoryOf(::GetSystemStatusUseCase)
     factoryOf(::LaunchGameUseCase)
     factoryOf(::ToggleFavoriteUseCase)
-    factoryOf(::UpdateVisibilityUseCase)
+    factoryOf(::RemoveGameUseCase)
     factoryOf(::RenameGameUseCase)
     factoryOf(::UpdateGameIconUseCase)
     factoryOf(::AddGamesUseCase)
     factoryOf(::GetAppListUseCase)
+}
 
+// 4. UI/Presentation Sub-Module (ViewModels)
+val featureViewModelModule = module {
     viewModelOf(::AppViewModel)
     viewModelOf(::GamesLauncherViewModel)
     viewModelOf(::AppPickerViewModel)
@@ -87,3 +106,11 @@ val appModule = module {
         )
     }
 }
+
+// The master list to pass directly to startKoin {} so your application class stays tidy.
+val appModules = listOf(
+    dataModule,
+    utilityModule,
+    domainModule,
+    featureViewModelModule
+)

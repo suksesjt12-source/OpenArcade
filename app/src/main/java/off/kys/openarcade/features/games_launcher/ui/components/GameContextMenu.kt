@@ -99,7 +99,7 @@ fun GameContextMenu(
                     )
 
                     GameActionItem(
-                        text = stringResource(if (game.isHidden) R.string.menu_restore_to_collection else R.string.menu_remove_from_collection),
+                        text = stringResource(R.string.menu_remove_from_collection),
                         icon = painterResource(R.drawable.round_close_24),
                         onClick = {
                             onRemove()

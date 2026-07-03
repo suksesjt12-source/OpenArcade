@@ -2,41 +2,41 @@ package off.kys.openarcade.ui.main
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import off.kys.openarcade.core.data.local.preferences.ArcadePreferences
 import off.kys.openarcade.core.domain.usecase.GetGamesUseCase
-import off.kys.openarcade.features.settings.ui.ScreenOrientation
-
-data class AppUiState(
-    val immersiveMode: Boolean = false,
-    val keepScreenOn: Boolean = false,
-    val screenOrientation: ScreenOrientation = ScreenOrientation.Auto,
-    val isInitialized: Boolean = false
-)
 
 class AppViewModel(
-    private val prefs: ArcadePreferences,
+    prefs: ArcadePreferences,
     getGamesUseCase: GetGamesUseCase
 ) : ViewModel() {
+
+    private val _isRefreshing = MutableStateFlow(true)
 
     val uiState: StateFlow<AppUiState> = combine(
         prefs.immersiveMode,
         prefs.keepScreenOn,
         prefs.screenOrientation,
-        getGamesUseCase()
-    ) { immersive, keepOn, orientation, games ->
+        getGamesUseCase(),
+        _isRefreshing
+    ) { immersive, keepOn, orientation, games, refreshing ->
         AppUiState(
             immersiveMode = immersive,
             keepScreenOn = keepOn,
             screenOrientation = orientation,
-            isInitialized = games.isNotEmpty()
+            isInitialized = !refreshing || games.isNotEmpty()
         )
     }.stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = AppUiState()
     )
+
+    fun setRefreshing(refreshing: Boolean) {
+        _isRefreshing.value = refreshing
+    }
 }

@@ -16,7 +16,7 @@ sealed interface GamesLauncherUiEvent {
     data object RefreshStats : GamesLauncherUiEvent
 
     data class FavoriteToggled(val packageName: String, val isFavorite: Boolean) : GamesLauncherUiEvent
-    data class VisibilityToggled(val packageName: String, val isHidden: Boolean) : GamesLauncherUiEvent
+    data class RemoveGame(val packageName: String) : GamesLauncherUiEvent
     data class RenameRequested(val packageName: String, val newTitle: String?) : GamesLauncherUiEvent
     data class ChangeIconRequested(val packageName: String, val newIconPath: String?) : GamesLauncherUiEvent
     data class AppInfoRequested(val packageName: String) : GamesLauncherUiEvent

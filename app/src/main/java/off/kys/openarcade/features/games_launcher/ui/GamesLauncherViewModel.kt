@@ -22,13 +22,13 @@ import off.kys.openarcade.core.domain.model.GameSortOption
 import off.kys.openarcade.core.domain.usecase.AddGamesUseCase
 import off.kys.openarcade.core.domain.usecase.GetGamesUseCase
 import off.kys.openarcade.core.domain.usecase.GetSystemStatusUseCase
-import off.kys.openarcade.features.games_launcher.domain.RefreshAllGameStatsUseCase
 import off.kys.openarcade.core.domain.usecase.RefreshGamesUseCase
+import off.kys.openarcade.core.domain.usecase.RemoveGameUseCase
+import off.kys.openarcade.features.games_launcher.domain.RefreshAllGameStatsUseCase
 import off.kys.openarcade.features.games_launcher.domain.RenameGameUseCase
 import off.kys.openarcade.features.games_launcher.domain.ToggleFavoriteUseCase
 import off.kys.openarcade.features.games_launcher.domain.UpdateGameCategoryUseCase
 import off.kys.openarcade.features.games_launcher.domain.UpdateGameIconUseCase
-import off.kys.openarcade.core.domain.usecase.UpdateVisibilityUseCase
 import off.kys.openarcade.features.settings.ui.GridColumns
 import off.kys.openarcade.features.settings.ui.ScreenOrientation
 
@@ -38,7 +38,7 @@ class GamesLauncherViewModel(
     getGamesUseCase: GetGamesUseCase,
     getSystemStatusUseCase: GetSystemStatusUseCase,
     private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
-    private val updateVisibilityUseCase: UpdateVisibilityUseCase,
+    private val removeGameUseCase: RemoveGameUseCase,
     private val renameGameUseCase: RenameGameUseCase,
     private val updateGameIconUseCase: UpdateGameIconUseCase,
     private val addGamesUseCase: AddGamesUseCase,
@@ -67,13 +67,9 @@ class GamesLauncherViewModel(
     private val availableFilters: StateFlow<List<GameFilter>> = allGames.map { games ->
         val filters = mutableListOf<GameFilter>()
         if (games.isNotEmpty()) {
-            filters.add(GameFilter.All)
-            filters.add(GameFilter.Installed)
             if (games.any { !it.isInstalled }) {
+                filters.add(GameFilter.Installed)
                 filters.add(GameFilter.Uninstalled)
-            }
-            if (games.any { it.isHidden }) {
-                filters.add(GameFilter.Hidden)
             }
         }
 
@@ -158,12 +154,11 @@ class GamesLauncherViewModel(
             if (game.lastPlayed > 0) recent.add(game)
 
             val matches = when (games.selected) {
-                is GameFilter.All -> !game.isHidden
-                is GameFilter.Installed -> !game.isHidden && game.isInstalled
-                is GameFilter.Uninstalled -> !game.isHidden && !game.isInstalled
-                is GameFilter.System -> !game.isHidden && game.category == games.selected.category
-                is GameFilter.Custom -> !game.isHidden && games.selected.name in game.customCategories
-                is GameFilter.Hidden -> game.isHidden
+                is GameFilter.All -> true
+                is GameFilter.Installed -> game.isInstalled
+                is GameFilter.Uninstalled -> !game.isInstalled
+                is GameFilter.System -> game.category == games.selected.category
+                is GameFilter.Custom -> games.selected.name in game.customCategories
             }
             if (matches) filtered.add(game)
         }
@@ -234,9 +229,9 @@ class GamesLauncherViewModel(
             }
         }
 
-        is GamesLauncherUiEvent.VisibilityToggled -> {
+        is GamesLauncherUiEvent.RemoveGame -> {
             viewModelScope.launch {
-                updateVisibilityUseCase(event.packageName, event.isHidden)
+                removeGameUseCase(event.packageName)
             }
         }
 
@@ -319,6 +314,8 @@ class GamesLauncherViewModel(
             isLoading.value = true
             try {
                 refreshGamesUseCase()
+            } catch (e: Exception) {
+                e.printStackTrace()
             } finally {
                 isLoading.value = false
             }

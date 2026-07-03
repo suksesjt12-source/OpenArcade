@@ -76,11 +76,15 @@ class GameRepositoryImpl(
                 customTitle = existing?.customTitle,
                 customIconPath = existing?.customIconPath,
                 cachedIconPath = cachedIconPath,
-                isHidden = existing?.isHidden ?: false,
                 isManuallyAdded = existing?.isManuallyAdded ?: false
             )
         }
         
+        // Only update games that are already in the database or were just scanned and we want to keep them?
+        // Wait, if we want to ONLY have games from the app picker, we should filter scannedGames.
+        // val existingPackageNames = existingGames.map { it.packageName }.toSet()
+        // val entitiesToUpdate = entities.filter { it.packageName in existingPackageNames }
+
         // Update database without full wipe
         gameDao.insertGames(entities)
         
@@ -136,8 +140,8 @@ class GameRepositoryImpl(
         gameDao.updateCustomIconPath(packageName, finalPath)
     }
 
-    override suspend fun updateVisibility(packageName: String, isHidden: Boolean) = withContext(Dispatchers.IO) {
-        gameDao.updateVisibility(packageName, isHidden)
+    override suspend fun deleteGame(packageName: String) = withContext(Dispatchers.IO) {
+        gameDao.deleteGame(packageName)
     }
 
     override suspend fun addGame(game: GameEntry) = withContext(Dispatchers.IO) {

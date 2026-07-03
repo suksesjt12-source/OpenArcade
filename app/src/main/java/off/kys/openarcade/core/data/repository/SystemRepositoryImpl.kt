@@ -14,11 +14,14 @@ import android.os.StatFs
 import android.os.storage.StorageManager
 import androidx.annotation.RequiresApi
 import androidx.core.net.toUri
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.launch
 import off.kys.openarcade.core.domain.model.GameEntry
 import off.kys.openarcade.core.domain.model.SystemStatus
 import off.kys.openarcade.core.domain.repository.SystemRepository
@@ -43,11 +46,13 @@ class SystemRepositoryImpl(
                     (level * 100 / scale.toFloat()).toInt()
                 } else 0
                 
-                trySend(SystemStatus(
-                    batteryLevel = batteryLevel,
-                    storageUsagePercentage = getStorageUsagePercentage(),
-                    hasUsageStatsPermission = hasUsageStatsPermission()
-                ))
+                launch(Dispatchers.IO) {
+                    trySend(SystemStatus(
+                        batteryLevel = batteryLevel,
+                        storageUsagePercentage = getStorageUsagePercentage(),
+                        hasUsageStatsPermission = hasUsageStatsPermission()
+                    ))
+                }
             }
         }
 
@@ -63,7 +68,8 @@ class SystemRepositoryImpl(
             storageUsagePercentage = getStorageUsagePercentage(),
             hasUsageStatsPermission = hasUsageStatsPermission()
         ))
-    }.conflate()
+    }.flowOn(Dispatchers.IO)
+    .conflate()
 
     override fun launchGame(packageName: String): Boolean {
         val pm = application.packageManager
@@ -98,6 +104,7 @@ class SystemRepositoryImpl(
     override fun hasUsageStatsPermission(): Boolean {
         val appOps = application.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
         val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            @Suppress("DEPRECATION")
             appOps.unsafeCheckOpNoThrow(
                 AppOpsManager.OPSTR_GET_USAGE_STATS,
                 Process.myUid(),
@@ -136,15 +143,13 @@ class SystemRepositoryImpl(
         }
     }
 
-    private fun getStorageUsageLegacy(): Int {
-        return try {
-            val stat = StatFs(File("/data").path)
-            val totalBytes = stat.blockCountLong * stat.blockSizeLong
-            val availableBytes = stat.availableBlocksLong * stat.blockSizeLong
-            val usedBytes = totalBytes - availableBytes
-            (usedBytes.toFloat() / totalBytes * 100).toInt()
-        } catch (_: Exception) {
-            0
-        }
+    private fun getStorageUsageLegacy(): Int = try {
+        val stat = StatFs(File("/data").path)
+        val totalBytes = stat.blockCountLong * stat.blockSizeLong
+        val availableBytes = stat.availableBlocksLong * stat.blockSizeLong
+        val usedBytes = totalBytes - availableBytes
+        (usedBytes.toFloat() / totalBytes * 100).toInt()
+    } catch (_: Exception) {
+        0
     }
 }

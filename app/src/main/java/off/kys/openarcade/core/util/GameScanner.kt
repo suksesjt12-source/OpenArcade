@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import androidx.core.graphics.drawable.toBitmap
 import androidx.palette.graphics.Palette
 import off.kys.openarcade.core.domain.model.GameCategory
@@ -12,6 +13,7 @@ import off.kys.openarcade.core.domain.model.GameEntry
 
 class GameScanner(private val context: Context) {
     fun fetchInstalledGames(extraPackages: List<String> = emptyList()): List<GameEntry> {
+        Log.d("GameScanner", "Scanning for games. Extra packages: $extraPackages")
         val pm = context.packageManager
         val intent = Intent(Intent.ACTION_MAIN, null).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)
@@ -23,6 +25,8 @@ class GameScanner(private val context: Context) {
             @Suppress("DEPRECATION")
             pm.queryIntentActivities(intent, 0)
         }
+
+        Log.d("GameScanner", "Found ${launcherActivities.size} launcher activities")
 
         val detectedGames = mutableListOf<GameEntry>()
         val seenPackages = mutableSetOf<String>()
@@ -42,6 +46,7 @@ class GameScanner(private val context: Context) {
             }
 
             if (isGame || extraPackages.contains(packageName)) {
+                Log.d("GameScanner", "Detected game: $packageName (isGame: $isGame)")
                 val title = appInfo.loadLabel(pm).toString()
                 val icon = appInfo.loadIcon(pm)
                 
@@ -84,10 +89,15 @@ class GameScanner(private val context: Context) {
         }
 
         // UI fallback if user lacks mobile games
-        if (detectedGames.isEmpty()) {
+        if (detectedGames.isEmpty() && extraPackages.isEmpty()) {
+            Log.d("GameScanner", "No games found, using fallback")
             val icon = context.applicationInfo.loadIcon(pm)
-            val palette = Palette.from(icon.toBitmap()).generate()
-            val primarySwatch = palette.vibrantSwatch ?: palette.dominantSwatch
+            val palette = try {
+                Palette.from(icon.toBitmap()).generate()
+            } catch (_: Exception) {
+                null
+            }
+            val primarySwatch = palette?.vibrantSwatch ?: palette?.dominantSwatch
 
             val primaryColor = primarySwatch?.rgb ?: 0xFF2A2A2A.toInt()
 
@@ -98,12 +108,13 @@ class GameScanner(private val context: Context) {
                     category = GameCategory.UTILITY,
                     primaryColorArgb = primaryColor,
                     onPrimaryColorArgb = primarySwatch?.titleTextColor ?: 0xFFFFFFFF.toInt(),
-                    secondaryColorArgb = palette.mutedSwatch?.rgb ?: primaryColor,
-                    tertiaryColorArgb = palette.darkVibrantSwatch?.rgb ?: primaryColor
+                    secondaryColorArgb = palette?.mutedSwatch?.rgb ?: primaryColor,
+                    tertiaryColorArgb = palette?.darkVibrantSwatch?.rgb ?: primaryColor
                 )
             )
         }
 
+        Log.d("GameScanner", "Scan complete. Found ${detectedGames.size} games")
         return detectedGames
     }
 }

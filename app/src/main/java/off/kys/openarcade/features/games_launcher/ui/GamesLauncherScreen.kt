@@ -20,6 +20,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,6 +51,7 @@ import off.kys.openarcade.features.games_launcher.ui.components.SectionEditBotto
 import off.kys.openarcade.features.games_launcher.ui.components.SystemStatusSection
 import off.kys.openarcade.features.games_launcher.ui.components.UsagePermissionCard
 import off.kys.openarcade.features.settings.ui.SettingsScreen
+import off.kys.openarcade.ui.main.AppViewModel
 import org.koin.androidx.compose.koinViewModel
 
 class GamesLauncherScreen : Screen {
@@ -60,10 +62,15 @@ class GamesLauncherScreen : Screen {
         val navigator = LocalNavigator.currentOrThrow
         val context = LocalContext.current
         val viewModel: GamesLauncherViewModel = koinViewModel()
+        val appViewModel: AppViewModel = koinViewModel()
         val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
         val gridState = rememberLazyGridState()
         var showSectionEdit by remember { mutableStateOf(false) }
+
+        LaunchedEffect(uiState.isLoading) {
+            appViewModel.setRefreshing(uiState.isLoading)
+        }
 
         LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
             viewModel.onEvent(GamesLauncherUiEvent.PermissionCheckRequested)

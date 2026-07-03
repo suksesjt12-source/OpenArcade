@@ -15,7 +15,7 @@ interface GameRepository {
     suspend fun updateFavoriteStatus(packageName: String, isFavorite: Boolean)
     suspend fun updateCustomTitle(packageName: String, customTitle: String?)
     suspend fun updateCustomIconPath(packageName: String, customIconPath: String?)
-    suspend fun updateVisibility(packageName: String, isHidden: Boolean)
+    suspend fun deleteGame(packageName: String)
     suspend fun addGame(game: GameEntry)
     fun getAnalyticsData(): Flow<AnalyticsData>
 }

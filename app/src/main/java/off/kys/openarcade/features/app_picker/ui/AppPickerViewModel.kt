@@ -3,7 +3,6 @@ package off.kys.openarcade.features.app_picker.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.collections.immutable.toPersistentList
-import kotlinx.collections.immutable.toPersistentMap
 import kotlinx.collections.immutable.toPersistentSet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,15 +11,13 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import off.kys.openarcade.core.data.local.preferences.ArcadePreferences
 import off.kys.openarcade.core.domain.usecase.AddGamesUseCase
-import off.kys.openarcade.features.app_picker.domain.GetAppListUseCase
 import off.kys.openarcade.core.domain.usecase.GetGamesUseCase
 import off.kys.openarcade.core.domain.usecase.RefreshGamesUseCase
-import off.kys.openarcade.core.domain.usecase.UpdateVisibilityUseCase
+import off.kys.openarcade.features.app_picker.domain.GetAppListUseCase
 
 class AppPickerViewModel(
     private val getAppListUseCase: GetAppListUseCase,
     private val addGamesUseCase: AddGamesUseCase,
-    private val updateVisibilityUseCase: UpdateVisibilityUseCase,
     private val refreshGamesUseCase: RefreshGamesUseCase,
     private val getGamesUseCase: GetGamesUseCase,
     private val prefs: ArcadePreferences
@@ -51,8 +48,8 @@ class AppPickerViewModel(
     private fun observeTrackedGames() {
         viewModelScope.launch {
             getGamesUseCase().collect { games ->
-                val tracked = games.associate { it.packageName to it.isHidden }
-                _uiState.update { it.copy(trackedPackages = tracked.toPersistentMap()) }
+                val tracked = games.map { it.packageName }.toPersistentSet()
+                _uiState.update { it.copy(trackedPackages = tracked) }
             }
         }
     }
@@ -92,19 +89,8 @@ class AppPickerViewModel(
 
         _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
-            val packagesToUpdateVisibility = mutableListOf<String>()
-            val packagesToAdd = mutableListOf<String>()
+            val packagesToAdd = selected.filter { it !in _uiState.value.trackedPackages }
 
-            selected.forEach { pkg ->
-                val isTracked = _uiState.value.trackedPackages.containsKey(pkg)
-                if (isTracked) {
-                    packagesToUpdateVisibility.add(pkg)
-                } else {
-                    packagesToAdd.add(pkg)
-                }
-            }
-
-            packagesToUpdateVisibility.forEach { updateVisibilityUseCase(it, false) }
             if (packagesToAdd.isNotEmpty()) {
                 addGamesUseCase(packagesToAdd)
             }

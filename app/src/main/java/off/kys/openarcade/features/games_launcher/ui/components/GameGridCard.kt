@@ -39,10 +39,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import off.kys.openarcade.R
 import off.kys.openarcade.core.domain.model.GameEntry
+import off.kys.openarcade.core.domain.repository.MediaRepository
 import off.kys.openarcade.core.ui.components.ArcadeCard
 import off.kys.openarcade.core.ui.components.ArcadeGameIcon
 import off.kys.openarcade.features.games_launcher.ui.GamesLauncherUiEvent
-import off.kys.openarcade.core.domain.repository.MediaRepository
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -177,7 +177,7 @@ fun GameGridCard(
                 },
                 onRename = { showRenameDialog = true },
                 onRemove = {
-                    onEvent(GamesLauncherUiEvent.VisibilityToggled(game.packageName, !game.isHidden))
+                    onEvent(GamesLauncherUiEvent.RemoveGame(game.packageName))
                 },
                 onManageTags = {
                     onEvent(GamesLauncherUiEvent.ManageTagsRequested(game))

@@ -28,7 +28,6 @@ data class GameEntry(
     val customIconPath: String? = null,
     val cachedIconPath: String? = null,
     val lastAppUpdateTime: Long = 0,
-    val isHidden: Boolean = false,
     val isManuallyAdded: Boolean = false
 ) {
     val displayName: String
