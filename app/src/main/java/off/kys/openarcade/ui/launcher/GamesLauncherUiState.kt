@@ -28,5 +28,9 @@ data class GamesLauncherUiState(
     val batteryLevel: Int = 0,
     val storageUsage: Int = 0,
     val hasUsageStatsPermission: Boolean = true,
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val showTagDialog: Boolean = false,
+    val taggingGame: GameEntry? = null,
+    val editingTags: ImmutableList<String> = persistentListOf(),
+    val newTagDraft: String = ""
 )

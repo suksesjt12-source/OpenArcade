@@ -36,6 +36,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import off.kys.openarcade.domain.model.LauncherSection
 import off.kys.openarcade.ui.app_picker.AppPickerScreen
 import off.kys.openarcade.ui.components.ArcadeGridScrollbar
+import off.kys.openarcade.ui.components.GameTagDialog
 import off.kys.openarcade.ui.detail.GameDetailScreen
 import off.kys.openarcade.ui.launcher.components.AnalyticsSection
 import off.kys.openarcade.ui.launcher.components.EmptyGamesState
@@ -76,6 +77,19 @@ class GamesLauncherScreen : Screen {
                 onToggleSection = { section, visible ->
                     viewModel.onEvent(GamesLauncherUiEvent.SectionVisibilityToggled(section, visible))
                 }
+            )
+        }
+
+        if (uiState.showTagDialog) {
+            GameTagDialog(
+                editingTags = uiState.editingTags,
+                newTagDraft = uiState.newTagDraft,
+                accentColor = MaterialTheme.colorScheme.tertiary, // Default accent
+                onUpdateNewTagDraft = { viewModel.onEvent(GamesLauncherUiEvent.TagDraftChanged(it)) },
+                onAddTag = { viewModel.onEvent(GamesLauncherUiEvent.TagAdded(it)) },
+                onRemoveTag = { viewModel.onEvent(GamesLauncherUiEvent.TagRemoved(it)) },
+                onSave = { viewModel.onEvent(GamesLauncherUiEvent.TagsSaved) },
+                onDismiss = { viewModel.onEvent(GamesLauncherUiEvent.TagDialogDismissed) }
             )
         }
 

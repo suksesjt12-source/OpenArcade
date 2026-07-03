@@ -2,6 +2,8 @@ package off.kys.openarcade.ui.launcher
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentSet
 import kotlinx.coroutines.Dispatchers
@@ -12,6 +14,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import off.kys.openarcade.data.local.ArcadePreferences
 import off.kys.openarcade.domain.model.GameCategory
@@ -19,7 +22,16 @@ import off.kys.openarcade.domain.model.GameEntry
 import off.kys.openarcade.domain.model.GameFilter
 import off.kys.openarcade.domain.model.GameSortOption
 import off.kys.openarcade.domain.model.LauncherSection
-import off.kys.openarcade.domain.usecase.*
+import off.kys.openarcade.domain.usecase.AddGamesUseCase
+import off.kys.openarcade.domain.usecase.GetGamesUseCase
+import off.kys.openarcade.domain.usecase.GetSystemStatusUseCase
+import off.kys.openarcade.domain.usecase.RefreshAllGameStatsUseCase
+import off.kys.openarcade.domain.usecase.RefreshGamesUseCase
+import off.kys.openarcade.domain.usecase.RenameGameUseCase
+import off.kys.openarcade.domain.usecase.ToggleFavoriteUseCase
+import off.kys.openarcade.domain.usecase.UpdateGameCategoryUseCase
+import off.kys.openarcade.domain.usecase.UpdateGameIconUseCase
+import off.kys.openarcade.domain.usecase.UpdateVisibilityUseCase
 
 class GamesLauncherViewModel(
     private val refreshGamesUseCase: RefreshGamesUseCase,
@@ -31,11 +43,20 @@ class GamesLauncherViewModel(
     private val renameGameUseCase: RenameGameUseCase,
     private val updateGameIconUseCase: UpdateGameIconUseCase,
     private val addGamesUseCase: AddGamesUseCase,
+    private val updateGameCategoryUseCase: UpdateGameCategoryUseCase,
     private val prefs: ArcadePreferences
 ) : ViewModel() {
 
     private val selectedFilter = MutableStateFlow<GameFilter>(GameFilter.All)
     private val isLoading = MutableStateFlow(true)
+    private val _tagState = MutableStateFlow(TagDialogState())
+
+    private data class TagDialogState(
+        val showTagDialog: Boolean = false,
+        val taggingGame: GameEntry? = null,
+        val editingTags: ImmutableList<String> = persistentListOf(),
+        val newTagDraft: String = ""
+    )
 
     private val allGames: StateFlow<List<GameEntry>> = getGamesUseCase()
         .stateIn(
@@ -94,7 +115,8 @@ class GamesLauncherViewModel(
         prefs.keepScreenOn,
         prefs.showScrollbar,
         prefs.hapticFeedback,
-        isLoading
+        isLoading,
+        _tagState
     ) { params ->
         val all = params[0] as List<GameEntry>
         val filters = params[1] as List<GameFilter>
@@ -109,6 +131,7 @@ class GamesLauncherViewModel(
         val scrollbar = params[10] as Boolean
         val haptic = params[11] as Boolean
         val loading = params[12] as Boolean
+        val tagState = params[13] as TagDialogState
 
         val visibleGames = all.filter { !it.isHidden }
 
@@ -152,7 +175,11 @@ class GamesLauncherViewModel(
             batteryLevel = status.batteryLevel,
             storageUsage = status.storageUsagePercentage,
             hasUsageStatsPermission = status.hasUsageStatsPermission,
-            isLoading = loading
+            isLoading = loading,
+            showTagDialog = tagState.showTagDialog,
+            taggingGame = tagState.taggingGame,
+            editingTags = tagState.editingTags,
+            newTagDraft = tagState.newTagDraft
         )
     }.flowOn(Dispatchers.Default)
         .stateIn(
@@ -215,6 +242,57 @@ class GamesLauncherViewModel(
             viewModelScope.launch {
                 addGamesUseCase(event.packageNames)
                 refreshGames()
+            }
+        }
+
+        is GamesLauncherUiEvent.ManageTagsRequested -> {
+            _tagState.update {
+                it.copy(
+                    showTagDialog = true,
+                    taggingGame = event.game,
+                    editingTags = event.game.customCategories,
+                    newTagDraft = ""
+                )
+            }
+        }
+
+        is GamesLauncherUiEvent.TagDialogDismissed -> {
+            _tagState.update { it.copy(showTagDialog = false) }
+        }
+
+        is GamesLauncherUiEvent.TagAdded -> {
+            _tagState.update { state ->
+                val trimmed = event.tag.trim()
+                if (trimmed.isNotBlank() && trimmed !in state.editingTags) {
+                    state.copy(
+                        editingTags = (state.editingTags + trimmed).toPersistentList(),
+                        newTagDraft = ""
+                    )
+                } else state
+            }
+        }
+
+        is GamesLauncherUiEvent.TagRemoved -> {
+            _tagState.update { state ->
+                state.copy(
+                    editingTags = (state.editingTags - event.tag).toPersistentList()
+                )
+            }
+        }
+
+        is GamesLauncherUiEvent.TagDraftChanged -> {
+            _tagState.update { it.copy(newTagDraft = event.text) }
+        }
+
+        is GamesLauncherUiEvent.TagsSaved -> {
+            val game = _tagState.value.taggingGame
+            if (game != null) {
+                viewModelScope.launch {
+                    updateGameCategoryUseCase(game.packageName, _tagState.value.editingTags)
+                    _tagState.update { it.copy(showTagDialog = false) }
+                }
+            } else {
+                _tagState.update { it.copy(showTagDialog = false) }
             }
         }
     }

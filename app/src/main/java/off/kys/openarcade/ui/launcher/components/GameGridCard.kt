@@ -179,6 +179,9 @@ fun GameGridCard(
                 onRemove = {
                     onEvent(GamesLauncherUiEvent.VisibilityToggled(game.packageName, !game.isHidden))
                 },
+                onManageTags = {
+                    onEvent(GamesLauncherUiEvent.ManageTagsRequested(game))
+                },
                 onAppInfo = {
                     val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                         data = Uri.fromParts("package", game.packageName, null)

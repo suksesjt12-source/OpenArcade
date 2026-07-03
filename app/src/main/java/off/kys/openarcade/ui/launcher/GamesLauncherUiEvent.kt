@@ -1,5 +1,6 @@
 package off.kys.openarcade.ui.launcher
 
+import off.kys.openarcade.domain.model.GameEntry
 import off.kys.openarcade.domain.model.GameFilter
 import off.kys.openarcade.domain.model.GameSortOption
 import off.kys.openarcade.domain.model.LauncherSection
@@ -21,4 +22,11 @@ sealed interface GamesLauncherUiEvent {
     data class AppInfoRequested(val packageName: String) : GamesLauncherUiEvent
     data class UninstallRequested(val packageName: String) : GamesLauncherUiEvent
     data class AddGamesRequested(val packageNames: List<String>) : GamesLauncherUiEvent
+
+    data class ManageTagsRequested(val game: GameEntry) : GamesLauncherUiEvent
+    data object TagDialogDismissed : GamesLauncherUiEvent
+    data class TagAdded(val tag: String) : GamesLauncherUiEvent
+    data class TagRemoved(val tag: String) : GamesLauncherUiEvent
+    data class TagDraftChanged(val text: String) : GamesLauncherUiEvent
+    data object TagsSaved : GamesLauncherUiEvent
 }

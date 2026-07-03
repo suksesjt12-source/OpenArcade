@@ -34,10 +34,11 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.Navigator
 import off.kys.openarcade.domain.model.GameEntry
+import off.kys.openarcade.domain.repository.MediaRepository
 import off.kys.openarcade.ui.components.ArcadeScrollStateScrollbar
+import off.kys.openarcade.ui.components.GameTagDialog
 import off.kys.openarcade.ui.detail.GameDetailUiEvent
 import off.kys.openarcade.ui.detail.GameDetailUiState
-import off.kys.openarcade.domain.repository.MediaRepository
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,13 +77,13 @@ fun GameDetailContent(
     )
 
     if (uiState.showCategoryDialog) {
-        GameCategoryDialog(
-            editingCategories = uiState.editingCategories,
-            newCategoryDraft = uiState.newCategoryDraft,
+        GameTagDialog(
+            editingTags = uiState.editingCategories,
+            newTagDraft = uiState.newCategoryDraft,
             accentColor = tertiaryColor,
-            onUpdateNewCategoryDraft = { onEvent(GameDetailUiEvent.UpdateNewCategoryDraft(it)) },
-            onAddCategory = { onEvent(GameDetailUiEvent.AddCategory(it)) },
-            onRemoveCategory = { onEvent(GameDetailUiEvent.RemoveCategory(it)) },
+            onUpdateNewTagDraft = { onEvent(GameDetailUiEvent.UpdateNewCategoryDraft(it)) },
+            onAddTag = { onEvent(GameDetailUiEvent.AddCategory(it)) },
+            onRemoveTag = { onEvent(GameDetailUiEvent.RemoveCategory(it)) },
             onSave = { onEvent(GameDetailUiEvent.SaveCategories) },
             onDismiss = { onEvent(GameDetailUiEvent.CloseCategoryDialog) }
         )

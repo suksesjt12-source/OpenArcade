@@ -1,4 +1,4 @@
-package off.kys.openarcade.ui.detail.components
+package off.kys.openarcade.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -28,23 +28,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import off.kys.openarcade.R
-import off.kys.openarcade.ui.components.ArcadeDialog
-import off.kys.openarcade.ui.components.ArcadeDialogButton
-import off.kys.openarcade.ui.components.ArcadeDialogDefaults.ButtonRole
-import off.kys.openarcade.ui.components.ArcadeTextField
-import off.kys.openarcade.ui.components.SectionHeader
 import off.kys.openarcade.domain.repository.MediaRepository
+import off.kys.openarcade.ui.components.ArcadeDialogDefaults.ButtonRole
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun GameCategoryDialog(
-    editingCategories: List<String>,
-    newCategoryDraft: String,
+fun GameTagDialog(
+    editingTags: List<String>,
+    newTagDraft: String,
     accentColor: Color,
-    onUpdateNewCategoryDraft: (String) -> Unit,
-    onAddCategory: (String) -> Unit,
-    onRemoveCategory: (String) -> Unit,
+    onUpdateNewTagDraft: (String) -> Unit,
+    onAddTag: (String) -> Unit,
+    onRemoveTag: (String) -> Unit,
     onSave: () -> Unit,
     onDismiss: () -> Unit,
     mediaRepository: MediaRepository = koinInject()
@@ -61,7 +57,7 @@ fun GameCategoryDialog(
         title = stringResource(R.string.game_detail_categories_title),
         content = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                if (editingCategories.isNotEmpty()) {
+                if (editingTags.isNotEmpty()) {
                     SectionHeader(
                         title = stringResource(R.string.game_detail_custom_tags_label),
                         accentColor = adaptiveAccentColor,
@@ -73,11 +69,11 @@ fun GameCategoryDialog(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        editingCategories.forEach { category ->
-                            EditableCategoryTag(
-                                category = category,
+                        editingTags.forEach { tag ->
+                            EditableTagItem(
+                                tag = tag,
                                 accentColor = adaptiveAccentColor,
-                                onRemove = { onRemoveCategory(category) }
+                                onRemove = { onRemoveTag(tag) }
                             )
                         }
                     }
@@ -93,15 +89,15 @@ fun GameCategoryDialog(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 ArcadeTextField(
-                    value = newCategoryDraft,
-                    onValueChange = onUpdateNewCategoryDraft,
+                    value = newTagDraft,
+                    onValueChange = onUpdateNewTagDraft,
                     label = stringResource(R.string.game_detail_new_tag_label),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = painterResource(R.drawable.round_add_24),
                     onTrailingClick = {
-                        if (newCategoryDraft.isNotBlank()) {
-                            onAddCategory(newCategoryDraft)
+                        if (newTagDraft.isNotBlank()) {
+                            onAddTag(newTagDraft)
                         }
                     }
                 )
@@ -123,8 +119,8 @@ fun GameCategoryDialog(
 }
 
 @Composable
-private fun EditableCategoryTag(
-    category: String,
+private fun EditableTagItem(
+    tag: String,
     accentColor: Color,
     onRemove: () -> Unit
 ) {
@@ -141,7 +137,7 @@ private fun EditableCategoryTag(
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = category,
+                text = tag,
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
                 color = accentColor
             )
