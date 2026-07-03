@@ -28,7 +28,6 @@ data class GamesLauncherUiState(
     val batteryLevel: Int = 0,
     val storageUsage: Int = 0,
     val hasUsageStatsPermission: Boolean = true,
-    val isLoading: Boolean = true,
     val showTagDialog: Boolean = false,
     val taggingGame: GameEntry? = null,
     val editingTags: ImmutableList<String> = persistentListOf(),
@@ -40,40 +39,4 @@ data class TagDialogState(
     val taggingGame: GameEntry? = null,
     val editingTags: ImmutableList<String> = persistentListOf(),
     val newTagDraft: String = ""
-)
-
-data class GamesDataState(
-    val all: List<GameEntry>,
-    val filters: List<GameFilter>,
-    val selected: GameFilter
-)
-
-data class PreferenceState(
-    val sort: GameSortOption,
-    val sections: Set<LauncherSection>,
-    val gridColumns: GridColumns,
-    val orientation: ScreenOrientation,
-    val immersiveMode: Boolean,
-    val keepScreenOn: Boolean,
-    val showScrollbar: Boolean,
-    val hapticFeedback: Boolean
-)
-
-data class PreferenceStatePart1(
-    val sort: GameSortOption,
-    val sections: Set<LauncherSection>,
-    val grid: GridColumns,
-    val orient: ScreenOrientation
-)
-
-data class PreferenceStatePart2(
-    val immersive: Boolean,
-    val keep: Boolean,
-    val scroll: Boolean,
-    val haptic: Boolean
-)
-
-data class TransientState(
-    val isLoading: Boolean,
-    val tagState: TagDialogState
 )

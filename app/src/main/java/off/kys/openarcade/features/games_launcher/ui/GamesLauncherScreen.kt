@@ -20,7 +20,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,7 +50,6 @@ import off.kys.openarcade.features.games_launcher.ui.components.SectionEditBotto
 import off.kys.openarcade.features.games_launcher.ui.components.SystemStatusSection
 import off.kys.openarcade.features.games_launcher.ui.components.UsagePermissionCard
 import off.kys.openarcade.features.settings.ui.SettingsScreen
-import off.kys.openarcade.ui.main.AppViewModel
 import off.kys.openarcade.ui.main.MainActivity
 import org.koin.androidx.compose.koinViewModel
 
@@ -62,18 +60,16 @@ class GamesLauncherScreen : Screen {
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val context = LocalContext.current
-        val viewModel: GamesLauncherViewModel = koinViewModel()
-        val appViewModel: AppViewModel = koinViewModel(
+        val viewModel: GamesLauncherViewModel = koinViewModel(
             viewModelStoreOwner = context as MainActivity
         )
         val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+        // Guard: If uiState is null, we are still initializing (Splash screen should be up)
+        val state = uiState ?: return
+
         val gridState = rememberLazyGridState()
         var showSectionEdit by remember { mutableStateOf(false) }
-
-        LaunchedEffect(uiState.isLoading) {
-            appViewModel.setRefreshing(uiState.isLoading)
-        }
 
         LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
             viewModel.onEvent(GamesLauncherUiEvent.PermissionCheckRequested)
@@ -82,7 +78,7 @@ class GamesLauncherScreen : Screen {
 
         if (showSectionEdit) {
             SectionEditBottomSheet(
-                visibleSections = uiState.visibleSections,
+                visibleSections = state.visibleSections,
                 onDismissRequest = { showSectionEdit = false },
                 onToggleSection = { section, visible ->
                     viewModel.onEvent(GamesLauncherUiEvent.SectionVisibilityToggled(section, visible))
@@ -90,11 +86,11 @@ class GamesLauncherScreen : Screen {
             )
         }
 
-        if (uiState.showTagDialog) {
+        if (state.showTagDialog) {
             GameTagDialog(
-                editingTags = uiState.editingTags,
-                newTagDraft = uiState.newTagDraft,
-                accentColor = MaterialTheme.colorScheme.tertiary, // Default accent
+                editingTags = state.editingTags,
+                newTagDraft = state.newTagDraft,
+                accentColor = MaterialTheme.colorScheme.tertiary,
                 onUpdateNewTagDraft = { viewModel.onEvent(GamesLauncherUiEvent.TagDraftChanged(it)) },
                 onAddTag = { viewModel.onEvent(GamesLauncherUiEvent.TagAdded(it)) },
                 onRemoveTag = { viewModel.onEvent(GamesLauncherUiEvent.TagRemoved(it)) },
@@ -107,7 +103,7 @@ class GamesLauncherScreen : Screen {
             Box(modifier = Modifier.fillMaxSize()) {
                 LazyVerticalGrid(
                     state = gridState,
-                    columns = GridCells.Fixed(uiState.gridColumns.count),
+                    columns = GridCells.Fixed(state.gridColumns.count),
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
                         top = 0.dp,
@@ -121,7 +117,7 @@ class GamesLauncherScreen : Screen {
                     item(key = "hero_section", span = { GridItemSpan(maxLineSpan) }) {
                         Box(Modifier.animateItem()) {
                             AnimatedContent(
-                                targetState = uiState.filteredGames.isNotEmpty(),
+                                targetState = state.filteredGames.isNotEmpty(),
                                 transitionSpec = {
                                     fadeIn().togetherWith(fadeOut())
                                 },
@@ -129,7 +125,7 @@ class GamesLauncherScreen : Screen {
                             ) { hasGames ->
                                 if (hasGames) {
                                     HeroBannerPager(
-                                        installedGames = uiState.filteredGames.filter { it.isInstalled },
+                                        installedGames = state.filteredGames.filter { it.isInstalled },
                                         onInspectGame = { pkg ->
                                             viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
                                             navigator.push(GameDetailScreen(pkg))
@@ -145,7 +141,7 @@ class GamesLauncherScreen : Screen {
                     item(key = "filter_chips", span = { GridItemSpan(maxLineSpan) }) {
                         Box(Modifier.animateItem()) {
                             FilterChipsRow(
-                                uiState = uiState,
+                                uiState = state,
                                 onFilterSelected = { filter ->
                                     viewModel.onEvent(GamesLauncherUiEvent.FilterSelected(filter))
                                 },
@@ -155,7 +151,7 @@ class GamesLauncherScreen : Screen {
                         }
                     }
 
-                    if (!uiState.hasUsageStatsPermission) {
+                    if (!state.hasUsageStatsPermission) {
                         item(key = "usage_permission", span = { GridItemSpan(maxLineSpan) }) {
                             Box(Modifier.animateItem()) {
                                 UsagePermissionCard {
@@ -166,61 +162,61 @@ class GamesLauncherScreen : Screen {
                         }
                     }
 
-                    if (LauncherSection.SYSTEM_STATUS in uiState.visibleSections) {
+                    if (LauncherSection.SYSTEM_STATUS in state.visibleSections) {
                         item(key = LauncherSection.SYSTEM_STATUS, span = { GridItemSpan(maxLineSpan) }) {
                             Box(Modifier.animateItem()) {
                                 SystemStatusSection(
-                                    batteryLevel = uiState.batteryLevel,
-                                    storageUsage = uiState.storageUsage
+                                    batteryLevel = state.batteryLevel,
+                                    storageUsage = state.storageUsage
                                 )
                             }
                         }
                     }
 
-                    if (LauncherSection.ANALYTICS in uiState.visibleSections) {
+                    if (LauncherSection.ANALYTICS in state.visibleSections) {
                         item(key = LauncherSection.ANALYTICS, span = { GridItemSpan(maxLineSpan) }) {
                             Box(Modifier.animateItem()) {
-                                AnalyticsSection(uiState.filteredGames)
+                                AnalyticsSection(state.filteredGames)
                             }
                         }
                     }
 
-                    if (LauncherSection.FAVORITES in uiState.visibleSections && uiState.favoriteGames.isNotEmpty()) {
+                    if (LauncherSection.FAVORITES in state.visibleSections && state.favoriteGames.isNotEmpty()) {
                         item(key = LauncherSection.FAVORITES, span = { GridItemSpan(maxLineSpan) }) {
                             Box(Modifier.animateItem()) {
                                 FavoritesSection(
-                                    games = uiState.favoriteGames,
+                                    games = state.favoriteGames,
                                     onGameClick = { pkg ->
                                         viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
                                         navigator.push(GameDetailScreen(pkg))
                                     },
-                                    hapticFeedbackEnabled = uiState.hapticFeedback
+                                    hapticFeedbackEnabled = state.hapticFeedback
                                 )
                             }
                         }
                     }
 
-                    if (LauncherSection.RECENT_ACTIVITY in uiState.visibleSections && uiState.recentGames.isNotEmpty()) {
+                    if (LauncherSection.RECENT_ACTIVITY in state.visibleSections && state.recentGames.isNotEmpty()) {
                         item(key = LauncherSection.RECENT_ACTIVITY, span = { GridItemSpan(maxLineSpan) }) {
                             Box(Modifier.animateItem()) {
                                 RecentActivitySection(
-                                    games = uiState.recentGames,
+                                    games = state.recentGames,
                                     onGameClick = { pkg ->
                                         viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
                                         navigator.push(GameDetailScreen(pkg))
                                     },
-                                    hapticFeedbackEnabled = uiState.hapticFeedback
+                                    hapticFeedbackEnabled = state.hapticFeedback
                                 )
                             }
                         }
                     }
 
-                    if (uiState.filteredGames.isNotEmpty()) {
+                    if (state.filteredGames.isNotEmpty()) {
                         item(key = "library_header", span = { GridItemSpan(maxLineSpan) }) {
                             Box(Modifier.animateItem()) {
                                 LibraryHeader(
-                                    gameCount = uiState.filteredGames.size,
-                                    selectedSort = uiState.selectedSort,
+                                    gameCount = state.filteredGames.size,
+                                    selectedSort = state.selectedSort,
                                     onSortSelected = { sort ->
                                         viewModel.onEvent(GamesLauncherUiEvent.SortSelected(sort))
                                     },
@@ -232,7 +228,7 @@ class GamesLauncherScreen : Screen {
                         }
                     }
 
-                    items(uiState.filteredGames, key = { it.packageName }) { game ->
+                    items(state.filteredGames, key = { it.packageName }) { game ->
                         GameGridCard(
                             game = game,
                             onClick = {
@@ -241,12 +237,12 @@ class GamesLauncherScreen : Screen {
                             },
                             onEvent = { viewModel.onEvent(it) },
                             modifier = Modifier.animateItem(),
-                            hapticFeedbackEnabled = uiState.hapticFeedback
+                            hapticFeedbackEnabled = state.hapticFeedback
                         )
                     }
                 }
 
-                if (uiState.showScrollbar) {
+                if (state.showScrollbar) {
                     ArcadeGridScrollbar(
                         gridState = gridState,
                         modifier = Modifier

@@ -5,12 +5,14 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.collections.immutable.toPersistentSet
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -20,8 +22,6 @@ import off.kys.openarcade.core.domain.model.GameEntry
 import off.kys.openarcade.core.domain.model.GameFilter
 import off.kys.openarcade.core.domain.model.GameSortOption
 import off.kys.openarcade.core.domain.usecase.AddGamesUseCase
-import off.kys.openarcade.core.domain.usecase.GetGamesUseCase
-import off.kys.openarcade.core.domain.usecase.GetSystemStatusUseCase
 import off.kys.openarcade.core.domain.usecase.RefreshGamesUseCase
 import off.kys.openarcade.core.domain.usecase.RemoveGameUseCase
 import off.kys.openarcade.features.games_launcher.domain.RefreshAllGameStatsUseCase
@@ -29,176 +29,114 @@ import off.kys.openarcade.features.games_launcher.domain.RenameGameUseCase
 import off.kys.openarcade.features.games_launcher.domain.ToggleFavoriteUseCase
 import off.kys.openarcade.features.games_launcher.domain.UpdateGameCategoryUseCase
 import off.kys.openarcade.features.games_launcher.domain.UpdateGameIconUseCase
-import off.kys.openarcade.features.settings.ui.GridColumns
-import off.kys.openarcade.features.settings.ui.ScreenOrientation
+import off.kys.openarcade.ui.main.AppState
+import off.kys.openarcade.ui.main.AppViewModel
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class GamesLauncherViewModel(
     private val refreshGamesUseCase: RefreshGamesUseCase,
     private val refreshAllGameStatsUseCase: RefreshAllGameStatsUseCase,
-    getGamesUseCase: GetGamesUseCase,
-    getSystemStatusUseCase: GetSystemStatusUseCase,
     private val toggleFavoriteUseCase: ToggleFavoriteUseCase,
     private val removeGameUseCase: RemoveGameUseCase,
     private val renameGameUseCase: RenameGameUseCase,
     private val updateGameIconUseCase: UpdateGameIconUseCase,
     private val addGamesUseCase: AddGamesUseCase,
     private val updateGameCategoryUseCase: UpdateGameCategoryUseCase,
-    private val prefs: ArcadePreferences
+    private val prefs: ArcadePreferences,
+    appViewModel: AppViewModel
 ) : ViewModel() {
 
     private val selectedFilter = MutableStateFlow<GameFilter>(GameFilter.All)
-    private val isLoading = MutableStateFlow(false)
     private val _tagState = MutableStateFlow(TagDialogState())
 
-    private val allGames: StateFlow<List<GameEntry>> = getGamesUseCase()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = emptyList()
-        )
+    val uiState: StateFlow<GamesLauncherUiState?> = appViewModel.appState
+        .filterIsInstance<AppState.Ready>()
+        .flatMapLatest { ready ->
+            val data = ready.data
+            combine(
+                selectedFilter,
+                _tagState,
+                prefs.selectedSort,
+                prefs.visibleSections,
+                combine(
+                    prefs.gridColumns,
+                    prefs.showScrollbar,
+                    prefs.hapticFeedback
+                ) { grid, scroll, haptic -> Triple(grid, scroll, haptic) }
+            ) { filter, tags, sort, sections, extra ->
+                val (grid, scroll, haptic) = extra
+                val allGames = data.games
+                val status = data.systemStatus
 
-    private val systemStatus = getSystemStatusUseCase()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = off.kys.openarcade.core.domain.model.SystemStatus()
-        )
+                val availableFilters = mutableListOf<GameFilter>()
+                if (allGames.isNotEmpty()) {
+                    availableFilters.add(GameFilter.All)
+                    availableFilters.add(GameFilter.Installed)
+                    if (allGames.any { !it.isInstalled }) {
+                        availableFilters.add(GameFilter.Uninstalled)
+                    }
+                }
+                GameCategory.entries.forEach { category ->
+                    if (category != GameCategory.UNDEFINED && allGames.any { it.category == category }) {
+                        availableFilters.add(GameFilter.System(category))
+                    }
+                }
+                val custom = allGames.flatMap { it.customCategories }.distinct().sorted()
+                custom.forEach { availableFilters.add(GameFilter.Custom(it)) }
 
-    private val availableFilters: StateFlow<List<GameFilter>> = allGames.map { games ->
-        val filters = mutableListOf<GameFilter>()
-        if (games.isNotEmpty()) {
-            filters.add(GameFilter.All)
-            filters.add(GameFilter.Installed)
-            if (games.any { !it.isInstalled }) {
-                filters.add(GameFilter.Uninstalled)
+                val favorites = mutableListOf<GameEntry>()
+                val recent = mutableListOf<GameEntry>()
+                val filtered = mutableListOf<GameEntry>()
+
+                allGames.forEach { game ->
+                    if (game.isFavorite) favorites.add(game)
+                    if (game.lastPlayed > 0) recent.add(game)
+
+                    val matches = when (filter) {
+                        is GameFilter.All -> true
+                        is GameFilter.Installed -> game.isInstalled
+                        is GameFilter.Uninstalled -> !game.isInstalled
+                        is GameFilter.System -> game.category == filter.category
+                        is GameFilter.Custom -> filter.name in game.customCategories
+                    }
+                    if (matches) filtered.add(game)
+                }
+
+                val sortedFiltered = when (sort) {
+                    GameSortOption.TITLE_ASC -> filtered.sortedBy { it.displayName.lowercase() }
+                    GameSortOption.TITLE_DESC -> filtered.sortedByDescending { it.displayName.lowercase() }
+                    GameSortOption.LAST_PLAYED -> filtered.sortedByDescending { it.lastPlayed }
+                    GameSortOption.TOTAL_PLAY_TIME -> filtered.sortedByDescending { it.totalPlayTime }
+                }
+
+                GamesLauncherUiState(
+                    filteredGames = sortedFiltered.toPersistentList(),
+                    favoriteGames = favorites.sortedBy { it.displayName.lowercase() }.toPersistentList(),
+                    recentGames = recent.sortedByDescending { it.lastPlayed }.take(5).toPersistentList(),
+                    filters = availableFilters.toPersistentList(),
+                    selectedFilter = filter,
+                    selectedSort = sort,
+                    visibleSections = sections.toPersistentSet(),
+                    gridColumns = grid,
+                    screenOrientation = data.screenOrientation,
+                    immersiveMode = data.immersiveMode,
+                    keepScreenOn = data.keepScreenOn,
+                    showScrollbar = scroll,
+                    hapticFeedback = haptic,
+                    batteryLevel = status.batteryLevel,
+                    storageUsage = status.storageUsagePercentage,
+                    hasUsageStatsPermission = status.hasUsageStatsPermission,
+                    showTagDialog = tags.showTagDialog,
+                    taggingGame = tags.taggingGame,
+                    editingTags = tags.editingTags,
+                    newTagDraft = tags.newTagDraft
+                )
             }
-        }
-
-        GameCategory.entries.forEach { category ->
-            if (category != GameCategory.UNDEFINED && games.any { it.category == category }) {
-                filters.add(GameFilter.System(category))
-            }
-        }
-
-        val custom = games.flatMap { it.customCategories }.distinct().sorted()
-        custom.forEach { filters.add(GameFilter.Custom(it)) }
-
-        filters
-    }.flowOn(Dispatchers.Default)
+        }.flowOn(Dispatchers.Default)
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = listOf(GameFilter.All)
-        )
-
-    private val combinedGamesData = combine(
-        allGames,
-        availableFilters,
-        selectedFilter
-    ) { all, filters, selected ->
-        GamesDataState(all, filters, selected)
-    }
-
-    private val preferenceState = combine(
-        combine(
-            prefs.selectedSort,
-            prefs.visibleSections,
-            prefs.gridColumns,
-            prefs.screenOrientation
-        ) { sort, sections, grid, orient ->
-            val gridCols = GridColumns.entries.firstOrNull { it == grid }
-                ?: GridColumns.Three
-            val orientation = ScreenOrientation.entries.firstOrNull { it == orient }
-                ?: ScreenOrientation.Auto
-            PreferenceStatePart1(sort, sections, gridCols, orientation)
-        },
-        combine(
-            prefs.immersiveMode,
-            prefs.keepScreenOn,
-            prefs.showScrollbar,
-            prefs.hapticFeedback
-        ) { immersive, keep, scroll, haptic ->
-            PreferenceStatePart2(immersive, keep, scroll, haptic)
-        }
-    ) { p1, p2 ->
-        PreferenceState(
-            sort = p1.sort,
-            sections = p1.sections,
-            gridColumns = p1.grid,
-            orientation = p1.orient,
-            immersiveMode = p2.immersive,
-            keepScreenOn = p2.keep,
-            showScrollbar = p2.scroll,
-            hapticFeedback = p2.haptic
-        )
-    }
-
-    private val combinedTransientState = combine(
-        isLoading,
-        _tagState
-    ) { loading, tags ->
-        TransientState(loading, tags)
-    }
-
-    val uiState: StateFlow<GamesLauncherUiState> = combine(
-        combinedGamesData,
-        systemStatus,
-        preferenceState,
-        combinedTransientState
-    ) { games, status, prefs, transient ->
-        val favorites = mutableListOf<GameEntry>()
-        val recent = mutableListOf<GameEntry>()
-        val filtered = mutableListOf<GameEntry>()
-
-        games.all.forEach { game ->
-            if (game.isFavorite) favorites.add(game)
-            if (game.lastPlayed > 0) recent.add(game)
-
-            val matches = when (games.selected) {
-                is GameFilter.All -> true
-                is GameFilter.Installed -> game.isInstalled
-                is GameFilter.Uninstalled -> !game.isInstalled
-                is GameFilter.System -> game.category == games.selected.category
-                is GameFilter.Custom -> games.selected.name in game.customCategories
-            }
-            if (matches) filtered.add(game)
-        }
-
-        val sortedFiltered = when (prefs.sort) {
-            GameSortOption.TITLE_ASC -> filtered.sortedBy { it.displayName.lowercase() }
-            GameSortOption.TITLE_DESC -> filtered.sortedByDescending { it.displayName.lowercase() }
-            GameSortOption.LAST_PLAYED -> filtered.sortedByDescending { it.lastPlayed }
-            GameSortOption.TOTAL_PLAY_TIME -> filtered.sortedByDescending { it.totalPlayTime }
-        }
-
-        GamesLauncherUiState(
-            filteredGames = sortedFiltered.toPersistentList(),
-            favoriteGames = favorites.sortedBy { it.displayName.lowercase() }.toPersistentList(),
-            recentGames = recent.sortedByDescending { it.lastPlayed }.take(5).toPersistentList(),
-            filters = games.filters.toPersistentList(),
-            selectedFilter = games.selected,
-            selectedSort = prefs.sort,
-            visibleSections = prefs.sections.toPersistentSet(),
-            gridColumns = prefs.gridColumns,
-            screenOrientation = prefs.orientation,
-            immersiveMode = prefs.immersiveMode,
-            keepScreenOn = prefs.keepScreenOn,
-            showScrollbar = prefs.showScrollbar,
-            hapticFeedback = prefs.hapticFeedback,
-            batteryLevel = status.batteryLevel,
-            storageUsage = status.storageUsagePercentage,
-            hasUsageStatsPermission = status.hasUsageStatsPermission,
-            isLoading = transient.isLoading,
-            showTagDialog = transient.tagState.showTagDialog,
-            taggingGame = transient.tagState.taggingGame,
-            editingTags = transient.tagState.editingTags,
-            newTagDraft = transient.tagState.newTagDraft
-        )
-    }.flowOn(Dispatchers.Default)
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = GamesLauncherUiState()
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
         )
 
     fun onEvent(event: GamesLauncherUiEvent) = when (event) {
@@ -217,7 +155,7 @@ class GamesLauncherViewModel(
         is GamesLauncherUiEvent.RefreshRequested -> refreshGames()
         is GamesLauncherUiEvent.GameClicked -> { /* Handled by UI */ }
         is GamesLauncherUiEvent.GrantPermissionClicked -> { /* Handled by UI */ }
-        is GamesLauncherUiEvent.PermissionCheckRequested -> { /* Handled by status flow */ }
+        is GamesLauncherUiEvent.PermissionCheckRequested -> { /* Handled by status flow in AppViewModel */ }
         is GamesLauncherUiEvent.RefreshStats -> refreshStats()
 
         is GamesLauncherUiEvent.FavoriteToggled -> {
@@ -308,13 +246,10 @@ class GamesLauncherViewModel(
 
     private fun refreshGames() {
         viewModelScope.launch {
-            isLoading.value = true
             try {
                 refreshGamesUseCase()
             } catch (e: Exception) {
                 e.printStackTrace()
-            } finally {
-                isLoading.value = false
             }
         }
     }

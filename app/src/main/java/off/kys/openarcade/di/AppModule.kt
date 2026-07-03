@@ -89,7 +89,15 @@ val domainModule = module {
 
 // 4. UI/Presentation Sub-Module (ViewModels)
 val featureViewModelModule = module {
-    viewModelOf(::AppViewModel)
+    viewModel {
+        AppViewModel(
+            prefs = get(),
+            getGamesUseCase = get(),
+            getSystemStatusUseCase = get(),
+            refreshGamesUseCase = get(),
+            refreshAllGameStatsUseCase = get()
+        )
+    }
     viewModelOf(::GamesLauncherViewModel)
     viewModelOf(::AppPickerViewModel)
     viewModelOf(::AnalyticsViewModel)

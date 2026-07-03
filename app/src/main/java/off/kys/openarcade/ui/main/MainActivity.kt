@@ -15,57 +15,64 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.SlideTransition
-import off.kys.openarcade.features.games_launcher.ui.GamesLauncherScreen
-import off.kys.openarcade.features.settings.ui.ScreenOrientation
 import off.kys.openarcade.core.ui.theme.OpenArcadeTheme
+import off.kys.openarcade.features.games_launcher.ui.GamesLauncherScreen
+import off.kys.openarcade.features.games_launcher.ui.GamesLauncherViewModel
+import off.kys.openarcade.features.settings.ui.ScreenOrientation
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MainActivity : ComponentActivity() {
 
     private val viewModel: AppViewModel by viewModel()
+    private val launcherViewModel: GamesLauncherViewModel by viewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
 
         splashScreen.setKeepOnScreenCondition {
-            !viewModel.uiState.value.isInitialized
+            viewModel.appState.value !is AppState.Ready || launcherViewModel.uiState.value == null
         }
 
         enableEdgeToEdge()
         setContent {
-            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            val appState by viewModel.appState.collectAsStateWithLifecycle()
+            val launcherUiState by launcherViewModel.uiState.collectAsStateWithLifecycle()
 
-            LaunchedEffect(uiState.immersiveMode) {
-                val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
-                if (uiState.immersiveMode) {
-                    windowInsetsController.systemBarsBehavior =
-                        WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                    windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
-                } else {
-                    windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
+            if (appState is AppState.Ready && launcherUiState != null) {
+                val data = (appState as AppState.Ready).data
+
+                LaunchedEffect(data.immersiveMode) {
+                    val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
+                    if (data.immersiveMode) {
+                        windowInsetsController.systemBarsBehavior =
+                            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                        windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
+                    } else {
+                        windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
+                    }
                 }
-            }
 
-            LaunchedEffect(uiState.keepScreenOn) {
-                if (uiState.keepScreenOn) {
-                    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                } else {
-                    window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                LaunchedEffect(data.keepScreenOn) {
+                    if (data.keepScreenOn) {
+                        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    } else {
+                        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    }
                 }
-            }
 
-            LaunchedEffect(uiState.screenOrientation) {
-                requestedOrientation = when (uiState.screenOrientation) {
-                    ScreenOrientation.Auto -> ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-                    ScreenOrientation.Portrait -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                    ScreenOrientation.Landscape -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                LaunchedEffect(data.screenOrientation) {
+                    requestedOrientation = when (data.screenOrientation) {
+                        ScreenOrientation.Auto -> ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                        ScreenOrientation.Portrait -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                        ScreenOrientation.Landscape -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                    }
                 }
-            }
 
-            OpenArcadeTheme {
-                Navigator(GamesLauncherScreen()) { navigator ->
-                    SlideTransition(navigator)
+                OpenArcadeTheme {
+                    Navigator(GamesLauncherScreen()) { navigator ->
+                        SlideTransition(navigator)
+                    }
                 }
             }
         }
