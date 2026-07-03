@@ -357,6 +357,21 @@ class SettingsScreen : Screen {
                             )
                             SettingsGroupDivider()
                             ToggleSettingItem(
+                                icon = painterResource(R.drawable.round_bolt_24),
+                                title = "Skip Game Details",
+                                subtitle = "Launch games directly on click",
+                                checked = state.skipGameDetails,
+                                hapticFeedbackEnabled = state.hapticFeedback,
+                                onCheckedChange = {
+                                    viewModel.onEvent(
+                                        SettingsUiEvent.ToggleSkipGameDetails(
+                                            it
+                                        )
+                                    )
+                                }
+                            )
+                            SettingsGroupDivider()
+                            ToggleSettingItem(
                                 icon = painterResource(R.drawable.round_category_24),
                                 title = "Reduce Animations",
                                 subtitle = "Simplify UI transitions for performance",

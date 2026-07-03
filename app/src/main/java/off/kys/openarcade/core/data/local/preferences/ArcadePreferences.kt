@@ -39,6 +39,9 @@ class ArcadePreferences(context: Context) {
     private val _launchAnimation = MutableStateFlow(prefs.getBoolean(KEY_LAUNCH_ANIMATION, true))
     val launchAnimation = _launchAnimation.asStateFlow()
 
+    private val _skipGameDetails = MutableStateFlow(prefs.getBoolean(KEY_SKIP_GAME_DETAILS, false))
+    val skipGameDetails = _skipGameDetails.asStateFlow()
+
     private val _screenOrientation = MutableStateFlow(loadOrientation())
     val screenOrientation = _screenOrientation.asStateFlow()
 
@@ -88,6 +91,11 @@ class ArcadePreferences(context: Context) {
         _launchAnimation.value = enabled
     }
 
+    fun setSkipGameDetails(enabled: Boolean) {
+        prefs.edit { putBoolean(KEY_SKIP_GAME_DETAILS, enabled) }
+        _skipGameDetails.value = enabled
+    }
+
     fun setScreenOrientation(orientation: ScreenOrientation) {
         prefs.edit { putString(KEY_SCREEN_ORIENTATION, orientation.name) }
         _screenOrientation.value = orientation
@@ -106,6 +114,7 @@ class ArcadePreferences(context: Context) {
         _reduceAnimations.value = false
         _hapticFeedback.value = true
         _launchAnimation.value = true
+        _skipGameDetails.value = false
         _screenOrientation.value = ScreenOrientation.Auto
         _gridColumns.value = GridColumns.Three
         _visibleSections.value = LauncherSection.entries.toSet()
@@ -157,6 +166,7 @@ class ArcadePreferences(context: Context) {
         private const val KEY_REDUCE_ANIMATIONS = "reduce_animations"
         private const val KEY_HAPTIC_FEEDBACK = "haptic_feedback"
         private const val KEY_LAUNCH_ANIMATION = "launch_animation"
+        private const val KEY_SKIP_GAME_DETAILS = "skip_game_details"
         private const val KEY_SCREEN_ORIENTATION = "screen_orientation"
         private const val KEY_GRID_COLUMNS = "grid_columns"
     }

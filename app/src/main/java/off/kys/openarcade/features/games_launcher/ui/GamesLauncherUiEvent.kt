@@ -10,6 +10,7 @@ sealed interface GamesLauncherUiEvent {
     data class SortSelected(val sort: GameSortOption) : GamesLauncherUiEvent
     data class SectionVisibilityToggled(val section: LauncherSection, val isVisible: Boolean) : GamesLauncherUiEvent
     data class GameClicked(val packageName: String) : GamesLauncherUiEvent
+    data class LaunchGameRequested(val packageName: String) : GamesLauncherUiEvent
     data object GrantPermissionClicked : GamesLauncherUiEvent
     data object RefreshRequested : GamesLauncherUiEvent
     data object PermissionCheckRequested : GamesLauncherUiEvent

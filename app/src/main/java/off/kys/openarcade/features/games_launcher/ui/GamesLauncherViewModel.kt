@@ -24,6 +24,7 @@ import off.kys.openarcade.core.domain.model.GameSortOption
 import off.kys.openarcade.core.domain.usecase.AddGamesUseCase
 import off.kys.openarcade.core.domain.usecase.RefreshGamesUseCase
 import off.kys.openarcade.core.domain.usecase.RemoveGameUseCase
+import off.kys.openarcade.features.game_details.domain.LaunchGameUseCase
 import off.kys.openarcade.features.games_launcher.domain.RefreshAllGameStatsUseCase
 import off.kys.openarcade.features.games_launcher.domain.RenameGameUseCase
 import off.kys.openarcade.features.games_launcher.domain.ToggleFavoriteUseCase
@@ -42,6 +43,7 @@ class GamesLauncherViewModel(
     private val updateGameIconUseCase: UpdateGameIconUseCase,
     private val addGamesUseCase: AddGamesUseCase,
     private val updateGameCategoryUseCase: UpdateGameCategoryUseCase,
+    private val launchGameUseCase: LaunchGameUseCase,
     private val prefs: ArcadePreferences,
     appViewModel: AppViewModel
 ) : ViewModel() {
@@ -61,10 +63,13 @@ class GamesLauncherViewModel(
                 combine(
                     prefs.gridColumns,
                     prefs.showScrollbar,
-                    prefs.hapticFeedback
-                ) { grid, scroll, haptic -> Triple(grid, scroll, haptic) }
+                    prefs.hapticFeedback,
+                    prefs.skipGameDetails
+                ) { grid, scroll, haptic, skipDetails ->
+                    Quadruple(grid, scroll, haptic, skipDetails)
+                }
             ) { filter, tags, sort, sections, extra ->
-                val (grid, scroll, haptic) = extra
+                val (grid, scroll, haptic, skipDetails) = extra
                 val allGames = data.games
                 val status = data.systemStatus
 
@@ -123,6 +128,7 @@ class GamesLauncherViewModel(
                     keepScreenOn = data.keepScreenOn,
                     showScrollbar = scroll,
                     hapticFeedback = haptic,
+                    skipGameDetails = skipDetails,
                     batteryLevel = status.batteryLevel,
                     storageUsage = status.storageUsagePercentage,
                     hasUsageStatsPermission = status.hasUsageStatsPermission,
@@ -154,6 +160,9 @@ class GamesLauncherViewModel(
 
         is GamesLauncherUiEvent.RefreshRequested -> refreshGames()
         is GamesLauncherUiEvent.GameClicked -> { /* Handled by UI */ }
+        is GamesLauncherUiEvent.LaunchGameRequested -> {
+            launchGameUseCase(event.packageName)
+        }
         is GamesLauncherUiEvent.GrantPermissionClicked -> { /* Handled by UI */ }
         is GamesLauncherUiEvent.PermissionCheckRequested -> { /* Handled by status flow in AppViewModel */ }
         is GamesLauncherUiEvent.RefreshStats -> refreshStats()
@@ -259,4 +268,11 @@ class GamesLauncherViewModel(
             refreshAllGameStatsUseCase()
         }
     }
+
+    private data class Quadruple<A, B, C, D>(
+        val first: A,
+        val second: B,
+        val third: C,
+        val fourth: D
+    )
 }

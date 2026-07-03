@@ -27,9 +27,10 @@ class SettingsViewModel(
             prefs.launchAnimation,
             prefs.screenOrientation,
             prefs.gridColumns,
-            prefs.visibleSections
-        ) { launchAnim, orientation, columns, sections ->
-            FourTuple(launchAnim, orientation, columns, sections)
+            prefs.visibleSections,
+            prefs.skipGameDetails
+        ) { launchAnim, orientation, columns, sections, skipDetails ->
+            FiveTupleTwo(launchAnim, orientation, columns, sections, skipDetails)
         }
     ) { firstGroup, secondGroup ->
         SettingsUiState(
@@ -39,6 +40,7 @@ class SettingsViewModel(
             reduceAnimations = firstGroup.reduceAnim,
             hapticFeedback = firstGroup.haptic,
             launchAnimation = secondGroup.launchAnim,
+            skipGameDetails = secondGroup.skipDetails,
             screenOrientation = secondGroup.orientation,
             gridColumns = secondGroup.columns,
             showFavoritesSection = secondGroup.sections.contains(LauncherSection.FAVORITES),
@@ -59,6 +61,7 @@ class SettingsViewModel(
         is SettingsUiEvent.ToggleReduceAnimations -> prefs.setReduceAnimations(event.enabled)
         is SettingsUiEvent.ToggleHapticFeedback -> prefs.setHapticFeedback(event.enabled)
         is SettingsUiEvent.ToggleLaunchAnimation -> prefs.setLaunchAnimation(event.enabled)
+        is SettingsUiEvent.ToggleSkipGameDetails -> prefs.setSkipGameDetails(event.enabled)
         is SettingsUiEvent.SetScreenOrientation -> prefs.setScreenOrientation(event.orientation)
         is SettingsUiEvent.SetGridColumns -> prefs.setGridColumns(event.columns)
         is SettingsUiEvent.ToggleSection -> prefs.setSectionVisible(event.section, event.visible)
@@ -73,10 +76,11 @@ class SettingsViewModel(
         val haptic: Boolean
     )
 
-    private data class FourTuple(
+    private data class FiveTupleTwo(
         val launchAnim: Boolean,
         val orientation: ScreenOrientation,
         val columns: GridColumns,
-        val sections: Set<LauncherSection>
+        val sections: Set<LauncherSection>,
+        val skipDetails: Boolean
     )
 }

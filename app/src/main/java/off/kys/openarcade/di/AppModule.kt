@@ -41,7 +41,13 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
-// 1. Data Sub-Module (Database, Prefs, Repositories)
+/**
+ * Koin module providing persistent infrastructure data layer dependencies.
+ *
+ * Configures the Room database framework instance ([AppDatabase]), its respective DAOs,
+ * shared application preferences data stores ([ArcadePreferences]), and binds abstraction contracts
+ * to concrete implementations for game, media, and system repositories.
+ */
 val dataModule = module {
     single {
         Room.databaseBuilder(
@@ -60,7 +66,13 @@ val dataModule = module {
     single<GameRepository> { GameRepositoryImpl(androidContext(), get(), get(), get()) }
 }
 
-// 2. Core Utilities Sub-Module
+/**
+ * Koin module providing foundational operational utility structures.
+ *
+ * Exposes core singleton tools leveraged across distinct boundaries for application features,
+ * handling physical icon mutations ([IconManager]), palette computations ([ColorExtractor]),
+ * device-level package queries ([GameScanner]), and system time localization mappings ([TimeUtils]).
+ */
 val utilityModule = module {
     single { IconManager(androidContext()) }
     single { ColorExtractor() }
@@ -68,7 +80,12 @@ val utilityModule = module {
     single { TimeUtils(androidContext()) }
 }
 
-// 3. Domain Sub-Module (Use Cases / Business Logic)
+/**
+ * Koin module mapping core business logic and transaction boundaries.
+ *
+ * Declares domain-level Interactors / Use Cases using short-lived [factoryOf] registrations.
+ * This guarantees instances remain stateless across distinct invocations from consuming view models.
+ */
 val domainModule = module {
     factoryOf(::GetGamesUseCase)
     factoryOf(::RefreshGamesUseCase)
@@ -87,7 +104,13 @@ val domainModule = module {
     factoryOf(::GetAppListUseCase)
 }
 
-// 4. UI/Presentation Sub-Module (ViewModels)
+/**
+ * Koin module mapping architecture state containers to user presentation targets.
+ *
+ * Hooks up UI view models to native lifecycle structures. Includes explicit parameter mappings
+ * for shared scope initialization hooks ([AppViewModel]), default reflection-driven declarations,
+ * and dynamic assisted runtime navigation parameters (such as the package name required by [GameDetailViewModel]).
+ */
 val featureViewModelModule = module {
     viewModel {
         AppViewModel(
@@ -115,7 +138,12 @@ val featureViewModelModule = module {
     }
 }
 
-// The master list to pass directly to startKoin {} so your application class stays tidy.
+/**
+ * Consolidates the modular subcomponents of the dependency graph into a single reference collection.
+ *
+ * Pass this directly to `startKoin` inside the target application class context wrapper
+ * to initialize structural resolution rules during application launch runtime.
+ */
 val appModules = listOf(
     dataModule,
     utilityModule,

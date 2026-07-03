@@ -25,6 +25,7 @@ data class GamesLauncherUiState(
     val keepScreenOn: Boolean = false,
     val showScrollbar: Boolean = true,
     val hapticFeedback: Boolean = true,
+    val skipGameDetails: Boolean = false,
     val batteryLevel: Int = 0,
     val storageUsage: Int = 0,
     val hasUsageStatsPermission: Boolean = true,

@@ -127,8 +127,12 @@ class GamesLauncherScreen : Screen {
                                     HeroBannerPager(
                                         installedGames = state.filteredGames.filter { it.isInstalled },
                                         onInspectGame = { pkg ->
-                                            viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
-                                            navigator.push(GameDetailScreen(pkg))
+                                            if (state.skipGameDetails) {
+                                                viewModel.onEvent(GamesLauncherUiEvent.LaunchGameRequested(pkg))
+                                            } else {
+                                                viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
+                                                navigator.push(GameDetailScreen(pkg))
+                                            }
                                         }
                                     )
                                 } else {
@@ -187,8 +191,12 @@ class GamesLauncherScreen : Screen {
                                 FavoritesSection(
                                     games = state.favoriteGames,
                                     onGameClick = { pkg ->
-                                        viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
-                                        navigator.push(GameDetailScreen(pkg))
+                                        if (state.skipGameDetails) {
+                                            viewModel.onEvent(GamesLauncherUiEvent.LaunchGameRequested(pkg))
+                                        } else {
+                                            viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
+                                            navigator.push(GameDetailScreen(pkg))
+                                        }
                                     },
                                     hapticFeedbackEnabled = state.hapticFeedback
                                 )
@@ -202,8 +210,12 @@ class GamesLauncherScreen : Screen {
                                 RecentActivitySection(
                                     games = state.recentGames,
                                     onGameClick = { pkg ->
-                                        viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
-                                        navigator.push(GameDetailScreen(pkg))
+                                        if (state.skipGameDetails) {
+                                            viewModel.onEvent(GamesLauncherUiEvent.LaunchGameRequested(pkg))
+                                        } else {
+                                            viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
+                                            navigator.push(GameDetailScreen(pkg))
+                                        }
                                     },
                                     hapticFeedbackEnabled = state.hapticFeedback
                                 )
@@ -232,8 +244,12 @@ class GamesLauncherScreen : Screen {
                         GameGridCard(
                             game = game,
                             onClick = {
-                                viewModel.onEvent(GamesLauncherUiEvent.GameClicked(game.packageName))
-                                navigator.push(GameDetailScreen(game.packageName))
+                                if (state.skipGameDetails) {
+                                    viewModel.onEvent(GamesLauncherUiEvent.LaunchGameRequested(game.packageName))
+                                } else {
+                                    viewModel.onEvent(GamesLauncherUiEvent.GameClicked(game.packageName))
+                                    navigator.push(GameDetailScreen(game.packageName))
+                                }
                             },
                             onEvent = { viewModel.onEvent(it) },
                             modifier = Modifier.animateItem(),

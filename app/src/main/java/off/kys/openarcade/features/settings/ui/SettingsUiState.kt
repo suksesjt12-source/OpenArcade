@@ -13,4 +13,5 @@ data class SettingsUiState(
     val gridColumns: GridColumns = GridColumns.Three,
     val hapticFeedback: Boolean = true,
     val launchAnimation: Boolean = true,
+    val skipGameDetails: Boolean = false,
 )
