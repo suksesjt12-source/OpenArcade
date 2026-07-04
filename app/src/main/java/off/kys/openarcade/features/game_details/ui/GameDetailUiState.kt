@@ -10,5 +10,8 @@ data class GameDetailUiState(
     val editingCategories: ImmutableList<String> = persistentListOf(),
     val newCategoryDraft: String = "",
     val showScrollbar: Boolean = true,
-    val hapticFeedback: Boolean = true
+    val hapticFeedback: Boolean = true,
+    val reduceAnimations: Boolean = false,
+    val launchAnimation: Boolean = true,
+    val isLaunching: Boolean = false
 )

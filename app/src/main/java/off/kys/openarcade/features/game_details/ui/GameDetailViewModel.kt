@@ -3,6 +3,7 @@ package off.kys.openarcade.features.game_details.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.collections.immutable.toPersistentList
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +16,7 @@ import off.kys.openarcade.features.game_details.domain.GetGameByPackageUseCase
 import off.kys.openarcade.features.game_details.domain.LaunchGameUseCase
 import off.kys.openarcade.features.game_details.domain.RefreshGameStatsUseCase
 import off.kys.openarcade.features.games_launcher.domain.UpdateGameCategoryUseCase
+import kotlin.time.Duration.Companion.milliseconds
 
 class GameDetailViewModel(
     private val packageName: String,
@@ -30,12 +32,23 @@ class GameDetailViewModel(
         getGameByPackageUseCase(packageName),
         prefs.showScrollbar,
         prefs.hapticFeedback,
+        prefs.reduceAnimations,
+        prefs.launchAnimation,
         _uiState
-    ) { game, showScrollbar, haptic, state ->
+    ) { params: Array<Any?> ->
+        val game = params[0] as off.kys.openarcade.core.domain.model.GameEntry?
+        val showScrollbar = params[1] as Boolean
+        val haptic = params[2] as Boolean
+        val reduceAnim = params[3] as Boolean
+        val launchAnim = params[4] as Boolean
+        val state = params[5] as GameDetailUiState
+        
         state.copy(
             game = game,
             showScrollbar = showScrollbar,
-            hapticFeedback = haptic
+            hapticFeedback = haptic,
+            reduceAnimations = reduceAnim,
+            launchAnimation = launchAnim
         )
     }.stateIn(
         scope = viewModelScope,
@@ -86,7 +99,17 @@ class GameDetailViewModel(
     }
 
     private fun launchGame() {
-        launchGameUseCase(packageName)
+        viewModelScope.launch {
+            if (uiState.value.launchAnimation) {
+                _uiState.update { it.copy(isLaunching = true) }
+                delay(3150.milliseconds)
+                launchGameUseCase(packageName)
+                delay(500.milliseconds)
+                _uiState.update { it.copy(isLaunching = false) }
+            } else {
+                launchGameUseCase(packageName)
+            }
+        }
     }
 
     private fun refreshStats() {

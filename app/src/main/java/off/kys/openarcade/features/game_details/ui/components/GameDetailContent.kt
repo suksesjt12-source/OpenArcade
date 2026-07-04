@@ -23,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +38,7 @@ import off.kys.openarcade.core.domain.model.GameEntry
 import off.kys.openarcade.core.domain.repository.MediaRepository
 import off.kys.openarcade.core.ui.components.ArcadeScrollStateScrollbar
 import off.kys.openarcade.core.ui.components.GameTagDialog
+import off.kys.openarcade.core.ui.components.LaunchOverlay
 import off.kys.openarcade.features.game_details.ui.GameDetailUiEvent
 import off.kys.openarcade.features.game_details.ui.GameDetailUiState
 import org.koin.compose.koinInject
@@ -66,15 +68,19 @@ fun GameDetailContent(
     val haptic = LocalHapticFeedback.current
 
     val infiniteTransition = rememberInfiniteTransition(label = "halo_pulse")
-    val haloAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.25f,
-        targetValue = 0.55f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = EaseInOutSine),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "haloAlpha"
-    )
+    val haloAlpha by if (uiState.reduceAnimations) {
+        remember { mutableFloatStateOf(0.40f) }
+    } else {
+        infiniteTransition.animateFloat(
+            initialValue = 0.25f,
+            targetValue = 0.55f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(2000, easing = EaseInOutSine),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "haloAlpha"
+        )
+    }
 
     if (uiState.showCategoryDialog) {
         GameTagDialog(
@@ -183,6 +189,12 @@ fun GameDetailContent(
                         .padding(end = 16.dp)
                 )
             }
+
+            LaunchOverlay(
+                game = currentGame,
+                isVisible = uiState.isLaunching,
+                reduceAnimations = uiState.reduceAnimations
+            )
         }
     }
 }

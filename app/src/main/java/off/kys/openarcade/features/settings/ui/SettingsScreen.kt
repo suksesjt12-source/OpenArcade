@@ -165,6 +165,7 @@ class SettingsScreen : Screen {
                                 subtitle = "Hide status & navigation bars while in launcher",
                                 checked = state.immersiveMode,
                                 hapticFeedbackEnabled = state.hapticFeedback,
+                                reduceAnimations = state.reduceAnimations,
                                 onCheckedChange = {
                                     viewModel.onEvent(
                                         SettingsUiEvent.ToggleImmersiveMode(
@@ -180,6 +181,7 @@ class SettingsScreen : Screen {
                                 subtitle = "Prevent screen from sleeping in launcher",
                                 checked = state.keepScreenOn,
                                 hapticFeedbackEnabled = state.hapticFeedback,
+                                reduceAnimations = state.reduceAnimations,
                                 onCheckedChange = {
                                     viewModel.onEvent(
                                         SettingsUiEvent.ToggleKeepScreenOn(
@@ -195,6 +197,7 @@ class SettingsScreen : Screen {
                                 subtitle = "Arcade-styled gradient scrollbar on lists",
                                 checked = state.showScrollbar,
                                 hapticFeedbackEnabled = state.hapticFeedback,
+                                reduceAnimations = state.reduceAnimations,
                                 onCheckedChange = {
                                     viewModel.onEvent(
                                         SettingsUiEvent.ToggleShowScrollbar(
@@ -258,6 +261,7 @@ class SettingsScreen : Screen {
                                 subtitle = "Show pinned games at the top",
                                 checked = state.showFavoritesSection,
                                 hapticFeedbackEnabled = state.hapticFeedback,
+                                reduceAnimations = state.reduceAnimations,
                                 onCheckedChange = {
                                     viewModel.onEvent(
                                         SettingsUiEvent.ToggleSection(
@@ -274,6 +278,7 @@ class SettingsScreen : Screen {
                                 subtitle = "Show play-time charts and stats",
                                 checked = state.showAnalyticsSection,
                                 hapticFeedbackEnabled = state.hapticFeedback,
+                                reduceAnimations = state.reduceAnimations,
                                 onCheckedChange = {
                                     viewModel.onEvent(
                                         SettingsUiEvent.ToggleSection(
@@ -290,6 +295,7 @@ class SettingsScreen : Screen {
                                 subtitle = "Show recently played games",
                                 checked = state.showRecentSection,
                                 hapticFeedbackEnabled = state.hapticFeedback,
+                                reduceAnimations = state.reduceAnimations,
                                 onCheckedChange = {
                                     viewModel.onEvent(
                                         SettingsUiEvent.ToggleSection(
@@ -306,6 +312,7 @@ class SettingsScreen : Screen {
                                 subtitle = "Show battery, storage and RAM usage",
                                 checked = state.showSystemStatus,
                                 hapticFeedbackEnabled = state.hapticFeedback,
+                                reduceAnimations = state.reduceAnimations,
                                 onCheckedChange = {
                                     viewModel.onEvent(
                                         SettingsUiEvent.ToggleSection(
@@ -332,6 +339,7 @@ class SettingsScreen : Screen {
                                 subtitle = "Vibrate on button presses and game launch",
                                 checked = state.hapticFeedback,
                                 hapticFeedbackEnabled = state.hapticFeedback,
+                                reduceAnimations = state.reduceAnimations,
                                 onCheckedChange = {
                                     viewModel.onEvent(
                                         SettingsUiEvent.ToggleHapticFeedback(
@@ -347,6 +355,7 @@ class SettingsScreen : Screen {
                                 subtitle = "Animate app icon when launching a game",
                                 checked = state.launchAnimation,
                                 hapticFeedbackEnabled = state.hapticFeedback,
+                                reduceAnimations = state.reduceAnimations,
                                 onCheckedChange = {
                                     viewModel.onEvent(
                                         SettingsUiEvent.ToggleLaunchAnimation(
@@ -362,6 +371,7 @@ class SettingsScreen : Screen {
                                 subtitle = "Launch games directly on click",
                                 checked = state.skipGameDetails,
                                 hapticFeedbackEnabled = state.hapticFeedback,
+                                reduceAnimations = state.reduceAnimations,
                                 onCheckedChange = {
                                     viewModel.onEvent(
                                         SettingsUiEvent.ToggleSkipGameDetails(
@@ -377,6 +387,7 @@ class SettingsScreen : Screen {
                                 subtitle = "Simplify UI transitions for performance",
                                 checked = state.reduceAnimations,
                                 hapticFeedbackEnabled = state.hapticFeedback,
+                                reduceAnimations = state.reduceAnimations,
                                 onCheckedChange = {
                                     viewModel.onEvent(
                                         SettingsUiEvent.ToggleReduceAnimations(
@@ -511,7 +522,8 @@ private fun ToggleSettingItem(
     subtitle: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    hapticFeedbackEnabled: Boolean = true
+    hapticFeedbackEnabled: Boolean = true,
+    reduceAnimations: Boolean = false
 ) {
     val haptic = LocalHapticFeedback.current
     val primary = MaterialTheme.colorScheme.primary
@@ -524,26 +536,26 @@ private fun ToggleSettingItem(
         targetValue = if (isPressed)
             primary.copy(alpha = if (checked) 0.12f else 0.06f)
         else Color.Transparent,
-        animationSpec = tween(AnimDuration),
+        animationSpec = tween(if (reduceAnimations) 0 else AnimDuration),
         label = "toggleRowBg_$title"
     )
 
     val iconBadgeBg by animateColorAsState(
         targetValue = if (checked) primary.copy(alpha = 0.18f)
         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
-        animationSpec = tween(AnimDuration),
+        animationSpec = tween(if (reduceAnimations) 0 else AnimDuration),
         label = "iconBadgeBg_$title"
     )
     val iconTint by animateColorAsState(
         targetValue = if (checked) primary
         else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.50f),
-        animationSpec = tween(AnimDuration),
+        animationSpec = tween(if (reduceAnimations) 0 else AnimDuration),
         label = "iconTint_$title"
     )
     val titleColor by animateColorAsState(
         targetValue = if (checked) MaterialTheme.colorScheme.onSurface
         else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-        animationSpec = tween(AnimDuration),
+        animationSpec = tween(if (reduceAnimations) 0 else AnimDuration),
         label = "titleColor_$title"
     )
 
@@ -605,7 +617,8 @@ private fun ToggleSettingItem(
         ArcadeToggle(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            hapticFeedbackEnabled = hapticFeedbackEnabled
+            hapticFeedbackEnabled = hapticFeedbackEnabled,
+            reduceAnimations = reduceAnimations
         )
     }
 }

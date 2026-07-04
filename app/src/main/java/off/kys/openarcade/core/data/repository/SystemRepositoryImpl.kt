@@ -7,6 +7,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Process
@@ -119,6 +121,18 @@ class SystemRepositoryImpl(
             )
         }
         return mode == AppOpsManager.MODE_ALLOWED
+    }
+
+    override fun getGameOrientation(packageName: String): Int {
+        val pm = application.packageManager
+        val intent = pm.getLaunchIntentForPackage(packageName) ?: return ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        val resolveInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            pm.resolveActivity(intent, PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_DEFAULT_ONLY.toLong()))
+        } else {
+            @Suppress("DEPRECATION")
+            pm.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+        }
+        return resolveInfo?.activityInfo?.screenOrientation ?: ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
     }
 
     private fun getStorageUsagePercentage(): Int {

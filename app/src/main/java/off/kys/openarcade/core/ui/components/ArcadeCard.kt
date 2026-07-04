@@ -1,7 +1,6 @@
 package off.kys.openarcade.core.ui.components
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import off.kys.openarcade.core.ui.util.AnimationUtils
 
 @Composable
 fun ArcadeCard(
@@ -32,6 +32,7 @@ fun ArcadeCard(
     accentColor: Color = MaterialTheme.colorScheme.primary,
     tertiaryColor: Color = MaterialTheme.colorScheme.tertiary,
     borderWidth: Dp = 1.dp,
+    reduceAnimations: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -45,7 +46,7 @@ fun ArcadeCard(
 
     val animatedContainer by animateColorAsState(
         targetValue = containerColor,
-        animationSpec = tween(200),
+        animationSpec = AnimationUtils.animationSpec(reduceAnimations, 200),
         label = "arcadeCardContainer"
     )
 

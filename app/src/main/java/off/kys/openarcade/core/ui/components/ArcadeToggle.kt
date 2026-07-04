@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import off.kys.openarcade.core.ui.util.AnimationUtils
 
 /**
  * Pill-shaped toggle that replaces [Switch].
@@ -38,7 +39,8 @@ fun ArcadeToggle(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    hapticFeedbackEnabled: Boolean = true
+    hapticFeedbackEnabled: Boolean = true,
+    reduceAnimations: Boolean = false
 ) {
     val haptic = LocalHapticFeedback.current
     val primary = MaterialTheme.colorScheme.primary
@@ -53,21 +55,21 @@ fun ArcadeToggle(
     // Thumb x-offset: 0 = left (off), 1 = right (on)
     val thumbOffset by animateFloatAsState(
         targetValue = if (checked) 1f else 0f,
-        animationSpec = tween(durationMillis = 220),
+        animationSpec = AnimationUtils.animationSpec(reduceAnimations, 220),
         label = "toggleThumb"
     )
 
     // Thumb scale: pops slightly on press
     val thumbScale by animateFloatAsState(
         targetValue = if (checked) 1.05f else 1f,
-        animationSpec = tween(180),
+        animationSpec = AnimationUtils.animationSpec(reduceAnimations, 180),
         label = "toggleScale"
     )
 
     val trackColor by animateColorAsState(
         targetValue = if (checked) Color.Transparent
         else MaterialTheme.colorScheme.surfaceContainerHigh,
-        animationSpec = tween(220),
+        animationSpec = AnimationUtils.animationSpec(reduceAnimations, 220),
         label = "trackColor"
     )
 

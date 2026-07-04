@@ -14,6 +14,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cafe.adriel.voyager.navigator.Navigator
+import cafe.adriel.voyager.transitions.FadeTransition
 import cafe.adriel.voyager.transitions.SlideTransition
 import off.kys.openarcade.core.ui.theme.OpenArcadeTheme
 import off.kys.openarcade.features.games_launcher.ui.GamesLauncherScreen
@@ -61,17 +62,25 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                LaunchedEffect(data.screenOrientation) {
-                    requestedOrientation = when (data.screenOrientation) {
-                        ScreenOrientation.Auto -> ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-                        ScreenOrientation.Portrait -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                        ScreenOrientation.Landscape -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                LaunchedEffect(data.screenOrientation, data.forcedOrientation) {
+                    if (data.forcedOrientation != null) {
+                        requestedOrientation = data.forcedOrientation
+                    } else {
+                        requestedOrientation = when (data.screenOrientation) {
+                            ScreenOrientation.Auto -> ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                            ScreenOrientation.Portrait -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                            ScreenOrientation.Landscape -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                        }
                     }
                 }
 
                 OpenArcadeTheme {
                     Navigator(GamesLauncherScreen()) { navigator ->
-                        SlideTransition(navigator)
+                        if (data.reduceAnimations) {
+                            FadeTransition(navigator)
+                        } else {
+                            SlideTransition(navigator)
+                        }
                     }
                 }
             }

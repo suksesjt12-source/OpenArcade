@@ -30,7 +30,8 @@ fun RecentActivitySection(
     games: List<GameEntry>,
     onGameClick: (String) -> Unit,
     modifier: Modifier = Modifier,
-    hapticFeedbackEnabled: Boolean = true
+    hapticFeedbackEnabled: Boolean = true,
+    reduceAnimations: Boolean = false
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         SectionHeader(
@@ -46,7 +47,8 @@ fun RecentActivitySection(
                 RecentGameCard(
                     game = game,
                     onClick = { onGameClick(game.packageName) },
-                    hapticFeedbackEnabled = hapticFeedbackEnabled
+                    hapticFeedbackEnabled = hapticFeedbackEnabled,
+                    reduceAnimations = reduceAnimations
                 )
             }
         }
@@ -58,6 +60,7 @@ private fun RecentGameCard(
     game: GameEntry,
     onClick: () -> Unit,
     hapticFeedbackEnabled: Boolean = true,
+    reduceAnimations: Boolean = false,
     mediaRepository: MediaRepository = koinInject()
 ) {
     val haptic = LocalHapticFeedback.current
@@ -74,6 +77,7 @@ private fun RecentGameCard(
         },
         modifier = Modifier.size(72.dp),
         accentColor = adaptiveTertiary,
+        reduceAnimations = reduceAnimations
     ) {
         ArcadeGameIcon(
             icon = game.customIconPath ?: game.cachedIconPath ?: game.packageName,

@@ -3,6 +3,9 @@ package off.kys.openarcade.features.games_launcher.ui
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -24,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -36,6 +40,7 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import off.kys.openarcade.core.domain.model.LauncherSection
 import off.kys.openarcade.core.ui.components.ArcadeGridScrollbar
 import off.kys.openarcade.core.ui.components.GameTagDialog
+import off.kys.openarcade.core.ui.components.LaunchOverlay
 import off.kys.openarcade.features.app_picker.ui.AppPickerScreen
 import off.kys.openarcade.features.game_details.ui.GameDetailScreen
 import off.kys.openarcade.features.games_launcher.ui.components.AnalyticsSection
@@ -64,8 +69,6 @@ class GamesLauncherScreen : Screen {
             viewModelStoreOwner = context as MainActivity
         )
         val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-        // Guard: If uiState is null, we are still initializing (Splash screen should be up)
         val state = uiState ?: return
 
         val gridState = rememberLazyGridState()
@@ -115,11 +118,19 @@ class GamesLauncherScreen : Screen {
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     item(key = "hero_section", span = { GridItemSpan(maxLineSpan) }) {
-                        Box(Modifier.animateItem()) {
+                        Box(Modifier.animateItem(
+                            fadeInSpec = if (state.reduceAnimations) snap() else tween(300),
+                            fadeOutSpec = if (state.reduceAnimations) snap() else tween(300),
+                            placementSpec = if (state.reduceAnimations) snap() else spring()
+                        )) {
                             AnimatedContent(
                                 targetState = state.filteredGames.isNotEmpty(),
                                 transitionSpec = {
-                                    fadeIn().togetherWith(fadeOut())
+                                    if (state.reduceAnimations) {
+                                        fadeIn(snap()).togetherWith(fadeOut(snap()))
+                                    } else {
+                                        fadeIn().togetherWith(fadeOut())
+                                    }
                                 },
                                 label = "hero_section_transition"
                             ) { hasGames ->
@@ -133,7 +144,8 @@ class GamesLauncherScreen : Screen {
                                                 viewModel.onEvent(GamesLauncherUiEvent.GameClicked(pkg))
                                                 navigator.push(GameDetailScreen(pkg))
                                             }
-                                        }
+                                        },
+                                        reduceAnimations = state.reduceAnimations
                                     )
                                 } else {
                                     EmptyGamesState()
@@ -198,7 +210,8 @@ class GamesLauncherScreen : Screen {
                                             navigator.push(GameDetailScreen(pkg))
                                         }
                                     },
-                                    hapticFeedbackEnabled = state.hapticFeedback
+                                    hapticFeedbackEnabled = state.hapticFeedback,
+                                    reduceAnimations = state.reduceAnimations
                                 )
                             }
                         }
@@ -217,7 +230,8 @@ class GamesLauncherScreen : Screen {
                                             navigator.push(GameDetailScreen(pkg))
                                         }
                                     },
-                                    hapticFeedbackEnabled = state.hapticFeedback
+                                    hapticFeedbackEnabled = state.hapticFeedback,
+                                    reduceAnimations = state.reduceAnimations
                                 )
                             }
                         }
@@ -252,8 +266,13 @@ class GamesLauncherScreen : Screen {
                                 }
                             },
                             onEvent = { viewModel.onEvent(it) },
-                            modifier = Modifier.animateItem(),
-                            hapticFeedbackEnabled = state.hapticFeedback
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = if (state.reduceAnimations) snap() else tween(300),
+                                fadeOutSpec = if (state.reduceAnimations) snap() else tween(300),
+                                placementSpec = if (state.reduceAnimations) snap() else spring()
+                            ),
+                            hapticFeedbackEnabled = state.hapticFeedback,
+                            reduceAnimations = state.reduceAnimations
                         )
                     }
                 }
@@ -262,12 +281,18 @@ class GamesLauncherScreen : Screen {
                     ArcadeGridScrollbar(
                         gridState = gridState,
                         modifier = Modifier
-                            .align(androidx.compose.ui.Alignment.CenterEnd)
+                            .align(Alignment.CenterEnd)
                             .fillMaxSize()
                             .padding(end = 16.dp)
                     )
                 }
             }
+
+            LaunchOverlay(
+                game = state.launchingGame,
+                isVisible = state.launchingGame != null,
+                reduceAnimations = state.reduceAnimations
+            )
         }
     }
 }

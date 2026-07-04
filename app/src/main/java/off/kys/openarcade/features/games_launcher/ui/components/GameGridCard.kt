@@ -53,6 +53,7 @@ fun GameGridCard(
     onEvent: (GamesLauncherUiEvent) -> Unit,
     modifier: Modifier = Modifier,
     hapticFeedbackEnabled: Boolean = true,
+    reduceAnimations: Boolean = false,
     mediaRepository: MediaRepository = koinInject()
 ) {
     val context = LocalContext.current
@@ -107,7 +108,8 @@ fun GameGridCard(
                 }
             ),
         accentColor = if (game.isFavorite) adaptivePrimary else adaptiveTertiary,
-        borderWidth = if (game.isFavorite) 2.dp else 1.dp
+        borderWidth = if (game.isFavorite) 2.dp else 1.dp,
+        reduceAnimations = reduceAnimations
     ) {
         Box {
             Column {

@@ -9,4 +9,5 @@ interface SystemRepository {
     fun getSystemStatus(): Flow<SystemStatus>
     fun launchGame(packageName: String): Boolean
     fun hasUsageStatsPermission(): Boolean
+    fun getGameOrientation(packageName: String): Int
 }

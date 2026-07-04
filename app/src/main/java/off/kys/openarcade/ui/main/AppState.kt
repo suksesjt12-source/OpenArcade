@@ -9,7 +9,10 @@ data class GameCoreData(
     val systemStatus: SystemStatus,
     val immersiveMode: Boolean,
     val keepScreenOn: Boolean,
-    val screenOrientation: ScreenOrientation
+    val screenOrientation: ScreenOrientation,
+    val forcedOrientation: Int? = null,
+    val reduceAnimations: Boolean,
+    val launchAnimation: Boolean
 )
 
 sealed interface AppState {

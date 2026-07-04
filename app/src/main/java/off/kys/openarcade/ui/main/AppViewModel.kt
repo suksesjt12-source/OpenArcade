@@ -26,29 +26,43 @@ class AppViewModel(
 ) : ViewModel() {
 
     private val _isRefreshing = MutableStateFlow(true)
+    private val _forcedOrientation = MutableStateFlow<Int?>(null)
 
     val appState: StateFlow<AppState> = combine(
-        combine(
-            getGamesUseCase(),
-            getSystemStatusUseCase(),
-            prefs.immersiveMode,
-            prefs.keepScreenOn
-        ) { games, status, immersive, keepOn ->
-            Quad(games, status, immersive, keepOn)
-        },
+        getGamesUseCase(),
+        getSystemStatusUseCase(),
+        prefs.immersiveMode,
+        prefs.keepScreenOn,
+        prefs.reduceAnimations,
+        prefs.launchAnimation,
         prefs.screenOrientation,
-        _isRefreshing
-    ) { quad, orientation, refreshing ->
+        _isRefreshing,
+        _forcedOrientation
+    ) { params: Array<Any?> ->
+        @Suppress("UNCHECKED_CAST")
+        val games = params[0] as List<off.kys.openarcade.core.domain.model.GameEntry>
+        val status = params[1] as off.kys.openarcade.core.domain.model.SystemStatus
+        val immersive = params[2] as Boolean
+        val keepOn = params[3] as Boolean
+        val reduceAnim = params[4] as Boolean
+        val launchAnim = params[5] as Boolean
+        val orientation = params[6] as off.kys.openarcade.features.settings.ui.ScreenOrientation
+        val refreshing = params[7] as Boolean
+        val forcedOrientation = params[8] as Int?
+
         AppStateData(
             data = GameCoreData(
-                games = quad.first,
-                systemStatus = quad.second,
-                immersiveMode = quad.third,
-                keepScreenOn = quad.fourth,
-                screenOrientation = orientation
+                games = games,
+                systemStatus = status,
+                immersiveMode = immersive,
+                keepScreenOn = keepOn,
+                reduceAnimations = reduceAnim,
+                launchAnimation = launchAnim,
+                screenOrientation = orientation,
+                forcedOrientation = forcedOrientation
             ),
             isRefreshing = refreshing,
-            hasGames = quad.first.isNotEmpty()
+            hasGames = games.isNotEmpty()
         )
     }.map { stateData ->
         if (stateData.isRefreshing && !stateData.hasGames) {
@@ -84,16 +98,22 @@ class AppViewModel(
         }
     }
 
+    fun setForcedOrientation(orientation: Int?) {
+        _forcedOrientation.value = orientation
+    }
+
     private data class AppStateData(
         val data: GameCoreData,
         val isRefreshing: Boolean,
         val hasGames: Boolean
     )
 
-    private data class Quad<A, B, C, D>(
+    private data class Sextuple<A, B, C, D, E, F>(
         val first: A,
         val second: B,
         val third: C,
-        val fourth: D
+        val fourth: D,
+        val fifth: E,
+        val sixth: F
     )
 }

@@ -1,6 +1,7 @@
 package off.kys.openarcade.features.games_launcher.ui.components
 
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -52,6 +53,7 @@ fun HeroBannerPager(
     modifier: Modifier = Modifier,
     installedGames: List<GameEntry>,
     onInspectGame: (String) -> Unit,
+    reduceAnimations: Boolean = false,
     mediaRepository: MediaRepository = koinInject()
 ) {
     val isDark = isSystemInDarkTheme()
@@ -102,9 +104,11 @@ fun HeroBannerPager(
                     modifier = Modifier
                         .fillMaxSize()
                         .graphicsLayer {
-                            translationX = pageOffset * 72.dp.toPx()
-                            scaleX = 1f + (pageOffset.absoluteValue * 0.06f).coerceAtMost(0.12f)
-                            scaleY = 1f + (pageOffset.absoluteValue * 0.06f).coerceAtMost(0.12f)
+                            if (!reduceAnimations) {
+                                translationX = pageOffset * 72.dp.toPx()
+                                scaleX = 1f + (pageOffset.absoluteValue * 0.06f).coerceAtMost(0.12f)
+                                scaleY = 1f + (pageOffset.absoluteValue * 0.06f).coerceAtMost(0.12f)
+                            }
                         },
                     contentScale = ContentScale.Crop,
                     alpha = 0.32f
@@ -197,7 +201,7 @@ fun HeroBannerPager(
                     val isActive = pagerState.currentPage == index
                     val dotWidth by animateDpAsState(
                         targetValue = if (isActive) 20.dp else 6.dp,
-                        animationSpec = tween(250),
+                        animationSpec = if (reduceAnimations) snap() else tween(250),
                         label = "dotWidth"
                     )
                     val activeGameColor = remember(pagerState.currentPage, isDark) {
