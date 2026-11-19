@@ -2,10 +2,7 @@ package off.kys.openarcade.features.astra
 
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ApplicationInfo
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,9 +22,11 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,11 +40,15 @@ import androidx.compose.ui.unit.sp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
+import off.kys.openarcade.features.astra.runtime.RuntimeIntegration
+import off.kys.openarcade.features.astra.runtime.WindowsRuntime
 import off.kys.openarcade.features.games_launcher.ui.GamesLauncherScreen
 
 private const val ASTRA_PREFS = "astrans_launcher"
 private const val KEY_GAME_FOLDER = "game_folder_uri"
 private const val KEY_GAME_FILE = "game_file_uri"
+private const val KEY_RUNTIME_PACKAGE = "windows_runtime_package"
+private const val KEY_DESKTOP_SHORTCUT_PATH = "windows_desktop_shortcut_path"
 
 private val AstraBackground = Color(0xFF080D16)
 private val AstraPanel = Color(0xFF131D2B)
@@ -64,6 +67,30 @@ class AstraHomeScreen : Screen {
         var folderUri by remember { mutableStateOf(preferences.getString(KEY_GAME_FOLDER, null)) }
         var gameFileUri by remember { mutableStateOf(preferences.getString(KEY_GAME_FILE, null)) }
         var status by remember { mutableStateOf("Pilih folder game atau file executable untuk menyimpan lokasinya.") }
+
+        val initiallyDetectedRuntimes = remember(context) {
+            RuntimeIntegration.findInstalledWinlatorBuilds(context)
+        }
+        var runtimes by remember { mutableStateOf(initiallyDetectedRuntimes) }
+        var selectedRuntimePackage by remember {
+            mutableStateOf(
+                preferences.getString(
+                    KEY_RUNTIME_PACKAGE,
+                    initiallyDetectedRuntimes.firstOrNull()?.packageName
+                ).orEmpty()
+            )
+        }
+        var desktopShortcutPath by remember {
+            mutableStateOf(preferences.getString(KEY_DESKTOP_SHORTCUT_PATH, "").orEmpty())
+        }
+
+        LaunchedEffect(runtimes) {
+            if (runtimes.isNotEmpty() && runtimes.none { it.packageName == selectedRuntimePackage }) {
+                val firstRuntime = runtimes.first()
+                selectedRuntimePackage = firstRuntime.packageName
+                preferences.edit().putString(KEY_RUNTIME_PACKAGE, firstRuntime.packageName).apply()
+            }
+        }
 
         val folderPicker = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocumentTree()
@@ -89,6 +116,27 @@ class AstraHomeScreen : Screen {
                     status = "File $displayName berhasil disimpan."
                 } else {
                     status = "Pilih file .exe atau .zip. File tidak diubah atau diekstrak oleh launcher."
+                }
+            }
+        }
+
+        val desktopShortcutPicker = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocument()
+        ) { uri: Uri? ->
+            if (uri != null) {
+                val displayName = queryDisplayName(context, uri)
+                if (!displayName.endsWith(".desktop", ignoreCase = true)) {
+                    status = "Pilih file shortcut dengan ekstensi .desktop."
+                } else {
+                    persistReadPermission(context, uri)
+                    val absolutePath = RuntimeIntegration.resolveFilesystemPath(context, uri)
+                    if (absolutePath != null) {
+                        desktopShortcutPath = absolutePath
+                        preferences.edit().putString(KEY_DESKTOP_SHORTCUT_PATH, absolutePath).apply()
+                        status = "Shortcut $displayName terpilih."
+                    } else {
+                        status = "File dipilih, tetapi penyedia file Android tidak memberikan path filesystem. Masukkan path absolut file .desktop secara manual."
+                    }
                 }
             }
         }
@@ -157,6 +205,40 @@ class AstraHomeScreen : Screen {
                     }
                 }
 
+                RuntimeCard(
+                    runtimes = runtimes,
+                    selectedRuntimePackage = selectedRuntimePackage,
+                    desktopShortcutPath = desktopShortcutPath,
+                    onSelectRuntime = { runtime: WindowsRuntime ->
+                        selectedRuntimePackage = runtime.packageName
+                        preferences.edit().putString(KEY_RUNTIME_PACKAGE, runtime.packageName).apply()
+                        status = "Runtime " + runtime.label + " dipilih."
+                    },
+                    onRefreshRuntimes = {
+                        runtimes = RuntimeIntegration.findInstalledWinlatorBuilds(context)
+                        status = if (runtimes.isEmpty()) {
+                            "Tidak ada aplikasi dengan nama Winlator yang terdeteksi."
+                        } else {
+                            "Pemindaian runtime selesai: " + runtimes.size + " build ditemukan."
+                        }
+                    },
+                    onShortcutPathChange = { path ->
+                        desktopShortcutPath = path
+                        preferences.edit().putString(KEY_DESKTOP_SHORTCUT_PATH, path).apply()
+                    },
+                    onPickShortcut = { desktopShortcutPicker.launch(arrayOf("*/*")) },
+                    onOpenRuntime = {
+                        status = RuntimeIntegration.openRuntime(context, selectedRuntimePackage).message
+                    },
+                    onLaunchShortcut = {
+                        status = RuntimeIntegration.launchDesktopShortcut(
+                            context,
+                            selectedRuntimePackage,
+                            desktopShortcutPath
+                        ).message
+                    }
+                )
+
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
@@ -170,31 +252,105 @@ class AstraHomeScreen : Screen {
                         OutlinedButton(onClick = { navigator.push(GamesLauncherScreen()) }, modifier = Modifier.fillMaxWidth()) {
                             Text("Buka pustaka aplikasi Android", color = AstraAccent)
                         }
-                        Button(
-                            onClick = {
-                                val launchIntent = findWinlatorLaunchIntent(context)
-                                if (launchIntent != null) {
-                                    status = "Membuka Winlator. Pilih executable game di dalam Winlator."
-                                    context.startActivity(launchIntent)
-                                } else {
-                                    status = "Winlator belum terdeteksi. Instal runtime Winlator terlebih dahulu."
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = AstraAccent, contentColor = AstraBackground)
-                        ) {
-                            Text("Buka Winlator", fontWeight = FontWeight.Bold)
-                        }
                     }
                 }
 
                 Text(status, color = AstraAccent, fontSize = 12.sp, modifier = Modifier.fillMaxWidth())
                 Text(
-                    text = "Catatan: AstraNS menyimpan referensi file dan profil. Menjalankan game PC tetap membutuhkan Winlator atau runtime kompatibilitas lain. Profil grafis di aplikasi ini adalah panduan; pengaturan runtime dilakukan di Winlator.",
+                    text = "Catatan: AstraNS tidak menyertakan Wine/Box64 di dalam APK. Runtime Windows harus dipasang terpisah. Profil grafis di sini adalah panduan; pengaturan DXVK, Box64, resolusi, VSync, dan kontrol overlay tetap dilakukan di aplikasi runtime.",
                     color = AstraMuted,
                     fontSize = 11.sp,
                     lineHeight = 16.sp
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RuntimeCard(
+    runtimes: List<WindowsRuntime>,
+    selectedRuntimePackage: String,
+    desktopShortcutPath: String,
+    onSelectRuntime: (WindowsRuntime) -> Unit,
+    onRefreshRuntimes: () -> Unit,
+    onShortcutPathChange: (String) -> Unit,
+    onPickShortcut: () -> Unit,
+    onOpenRuntime: () -> Unit,
+    onLaunchShortcut: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = AstraPanel)
+    ) {
+        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("RUNTIME WINDOWS / WINE", color = AstraText, fontWeight = FontWeight.Bold)
+            Text(
+                text = if (runtimes.isEmpty()) {
+                    "Winlator belum terdeteksi. Instal Winlator atau varian yang sesuai, lalu tekan deteksi ulang."
+                } else {
+                    runtimes.size.toString() + " aplikasi Winlator terdeteksi. Pilih build yang ingin dipakai."
+                },
+                color = AstraMuted,
+                fontSize = 12.sp
+            )
+
+            runtimes.forEach { runtime ->
+                val selected = runtime.packageName == selectedRuntimePackage
+                OutlinedButton(
+                    onClick = { onSelectRuntime(runtime) },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = (if (selected) "✓  " else "") + runtime.label,
+                        color = if (selected) AstraAccent else AstraText
+                    )
+                }
+            }
+
+            OutlinedButton(onClick = onRefreshRuntimes, modifier = Modifier.fillMaxWidth()) {
+                Text("Deteksi ulang runtime", color = AstraAccent)
+            }
+
+            Text("SHORTCUT GAME WINLATOR", color = AstraText, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+            Text(
+                "Pilih shortcut .desktop yang sudah diekspor dari Winlator. Jika path tidak terbaca otomatis, masukkan lokasi lengkap file tersebut.",
+                color = AstraMuted,
+                fontSize = 11.sp,
+                lineHeight = 16.sp
+            )
+            OutlinedTextField(
+                value = desktopShortcutPath,
+                onValueChange = onShortcutPathChange,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Path file .desktop") },
+                placeholder = {
+                    Text("/storage/emulated/0/Download/Winlator/FrontendShortcuts/Naruto.desktop")
+                },
+                singleLine = true
+            )
+            OutlinedButton(onClick = onPickShortcut, modifier = Modifier.fillMaxWidth()) {
+                Text("Pilih shortcut .desktop", color = AstraAccent)
+            }
+
+            Button(
+                onClick = onOpenRuntime,
+                enabled = selectedRuntimePackage.isNotBlank(),
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AstraAccent,
+                    contentColor = AstraBackground
+                )
+            ) {
+                Text("Buka runtime", fontWeight = FontWeight.Bold)
+            }
+            OutlinedButton(
+                onClick = onLaunchShortcut,
+                enabled = selectedRuntimePackage.isNotBlank() && desktopShortcutPath.isNotBlank(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Kirim shortcut ke runtime", color = AstraAccent)
             }
         }
     }
@@ -218,29 +374,4 @@ private fun queryDisplayName(context: Context, uri: Uri): String {
     } catch (_: Exception) {
         uri.lastPathSegment ?: "file dipilih"
     }
-}
-
-@Suppress("DEPRECATION")
-private fun findWinlatorLaunchIntent(context: Context): Intent? {
-    val packageManager = context.packageManager
-    val applications: List<ApplicationInfo> = try {
-        if (Build.VERSION.SDK_INT >= 33) {
-            packageManager.getInstalledApplications(PackageManager.ApplicationInfoFlags.of(0L))
-        } else {
-            packageManager.getInstalledApplications(0)
-        }
-    } catch (_: Exception) {
-        emptyList()
-    }
-
-    return applications
-        .filter { application ->
-            packageManager.getApplicationLabel(application).toString().contains("winlator", ignoreCase = true)
-        }
-        .sortedBy { application ->
-            packageManager.getApplicationLabel(application).toString().length
-        }
-        .firstNotNullOfOrNull { application ->
-            packageManager.getLaunchIntentForPackage(application.packageName)
-        }
 }
