@@ -1,87 +1,53 @@
-# OpenArcade
+# AstraNS Launcher
 
-![Version](https://img.shields.io/badge/version-1.0.2-blue)
+![Android](https://img.shields.io/badge/platform-Android-3DDC84)
+![Build](https://img.shields.io/badge/build-GitHub_Actions-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Android](https://img.shields.io/badge/Android-6.0%2B-brightgreen)
-[![Donate via Liberapay](https://img.shields.io/liberapay/receives/kys0ff.svg?logo=liberapay)](https://liberapay.com/kys0ff/donate)
 
-OpenArcade is a sophisticated, arcade-inspired game launcher meticulously crafted for Android. It
-serves as a centralized command center for your entire mobile gaming collection, blending a refined
-aesthetic with powerful customization and deep play-time insights.
+AstraNS Launcher is an Android launcher prototype focused on organizing a Windows game setup for use with a compatible Android runtime such as Winlator.
 
-## Recent Changes (1.0.2)
+## Current features
 
-- **Fast Launch**: New "Skip Game Details" toggle for immediate gaming.
-- **Tag Management**: Easier library organization via context menus.
-- **Infrastructure**: Major architectural refactor to feature-based modules for better performance.
-- **Licenses**: New dynamic open-source attribution screen.
+- AstraNS home screen with a dedicated Naruto Shippuden: Ultimate Ninja Storm Revolution profile.
+- Select and persist a game folder reference using Android's Storage Access Framework.
+- Select and persist a local `.exe` or `.zip` file reference.
+- Detect and open an installed app whose launcher label contains "Winlator".
+- Local profile preferences for target resolution (854×480, 960×540, 1280×720), target FPS (30/60), and a touchscreen-controls guide preference.
+- Existing OpenArcade Android application library remains accessible from the home screen.
+- GitHub Actions workflow to build and upload a debug APK artifact.
 
-## Core Features
+## Important runtime limitation
 
-- **Intelligent Game Discovery**: Seamlessly identifies and aggregates all installed titles into a
-  unified, high-performance library.
-- **Granular Categorization**: Organize your collection with precision using bespoke categories
-  tailored to your gaming habits.
-- **Advanced Play-time Analytics**: Gain profound insights into your gaming patterns with
-  comprehensive, data-driven usage statistics.
-- **Bespoke Personalization**: Complete creative control over your library, allowing you to redefine
-  game titles and curate custom iconography.
-- **Immersive Dynamic Theming**: An adaptive interface that extracts the essence of your game
-  artwork to create a cohesive, color-aware visual experience.
-- **High-Fidelity Navigation**: Experience fluid, cinematic transitions as you move between the
-  library, deep-dive detail views, and system settings.
+AstraNS is a launcher and file-reference manager. It does not contain the Windows game, a Windows emulator, Box64, Wine, DXVK, or Vulkan drivers. The selected executable is not automatically imported into or launched by Winlator. Open Winlator and select the game executable from inside the runtime.
 
-## Technical Architecture
+The resolution, FPS, and control preferences in AstraNS are saved locally as a profile guide. They do not directly modify Winlator containers, VSync, DXVK, Box64, or the runtime's touch overlay.
 
-OpenArcade leverages a cutting-edge technical stack to ensure performance, stability, and
-maintainability:
+Only use game files that you own or are otherwise authorized to use.
 
-- **[Jetpack Compose](https://developer.android.com/jetpack/compose)** - Powers a fully declarative,
-  reactive UI layer for maximum responsiveness.
-- **[Koin](https://insert-koin.io/)** - Facilitates a lightweight and efficient dependency injection
-  framework.
-- **[Room](https://developer.android.com/training/data-storage/room)** - Provides a robust,
-  ACID-compliant local database for managing extensive game data and analytics.
-- **[Voyager](https://voyager.adriel.cafe/)** - Implements a pragmatic and flexible navigation
-  architecture specifically designed for Compose.
-- **[Coil](https://coil-kt.github.io/coil/)** - Ensures high-performance, lifecycle-aware image
-  loading and caching.
-- **[Kotlin Coroutines & Flow](https://kotlinlang.org/docs/coroutines-overview.html)** - Drives
-  asynchronous operations and reactive data streams for a non-blocking user experience.
-- **[Palette API](https://developer.android.com/develop/ui/views/graphics/palette)** - Delivers a
-  modern design language with sophisticated color extraction for dynamic interface adaptation.
+## Build APK with GitHub Actions
 
-## Getting Started
+1. Open the **Actions** tab in this repository.
+2. Select **Android APK**.
+3. Select **Run workflow** when building manually, or wait for the workflow to run after a push to `master` or `main`.
+4. Open the completed workflow run and download the artifact named **AstraNS-Launcher-debug**.
 
-### Prerequisites
+The workflow runs `./gradlew assembleGithubDebug`. The generated APK is uploaded as an Actions artifact.
 
-- Android Studio Ladybug (or newer)
-- Android SDK 37 (Target)
-- Minimum Android Version: Android 6.0 (API 23)
+## Local build
 
-### Development Setup
+Requirements: JDK 17 and Android SDK platform 37.
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/kys0ff/OpenArcade.git
-   ```
-2. Open the project in Android Studio.
-3. Synchronize the project with Gradle files.
-4. Deploy the `app` module to a target device or emulator.
+```bash
+chmod +x ./gradlew
+./gradlew assembleGithubDebug
+```
 
-## Releases
+Expected output:
 
-- **[1.0.2](https://github.com/kys0ff/OpenArcade/releases/tag/v1.0.2)** - Architecture refactor, fast-launch settings, and enhanced tag management.
-- **[1.0.0](https://github.com/kys0ff/OpenArcade/releases/tag/v1.0.0)** - The inaugural release
-  featuring core library management, automated play-time tracking, and adaptive dynamic theming.
+```
+app/build/outputs/apk/github/debug/
+```
 
-## Support & Donation
+## Upstream and license
 
-If you find OpenArcade useful, please consider supporting the project:
-
-- **Liberapay**: [Donate to kys0ff](https://liberapay.com/kys0ff/donate)
-
-## License
-
-This project is licensed under the MIT License. Detailed terms can be found in
-the [LICENSE](LICENSE) file.
+This project is based on [OpenArcade](https://github.com/kys0ff/OpenArcade), which is distributed under the MIT License. The upstream license file is retained in this repository. See [LICENSE](LICENSE) for the license text.
