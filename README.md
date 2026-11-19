@@ -4,25 +4,28 @@
 ![Build](https://img.shields.io/badge/build-GitHub_Actions-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-AstraNS Launcher is an Android launcher prototype focused on organizing a Windows game setup for use with a compatible Android runtime such as Winlator.
+AstraNS Launcher is an Android launcher prototype for organizing a Windows game setup and handing launch requests to an installed compatible Android runtime.
 
 ## Current features
 
 - AstraNS home screen with a dedicated Naruto Shippuden: Ultimate Ninja Storm Revolution profile.
 - Select and persist a game folder reference using Android's Storage Access Framework.
 - Select and persist a local `.exe` or `.zip` file reference.
-- Detect and open an installed app whose launcher label contains "Winlator".
+- Detect installed Winlator builds by app label or package name, including separately named variants.
+- Save the selected Winlator package so the launcher can reopen the preferred runtime.
+- Open the selected runtime from AstraNS.
+- Select an exported `.desktop` shortcut or enter its absolute filesystem path, then forward it using the `frontend_desktop_path` intent extra.
 - Local profile preferences for target resolution (854×480, 960×540, 1280×720), target FPS (30/60), and a touchscreen-controls guide preference.
 - Existing OpenArcade Android application library remains accessible from the home screen.
 - GitHub Actions workflow to build and upload a debug APK artifact.
 
-## Important runtime limitation
+## Runtime integration and limitations
 
-AstraNS is a launcher and file-reference manager. It does not contain the Windows game, a Windows emulator, Box64, Wine, DXVK, or Vulkan drivers. The selected executable is not automatically imported into or launched by Winlator. Open Winlator and select the game executable from inside the runtime.
+AstraNS does **not** bundle the Windows runtime. Wine, Box64, DXVK, Vulkan drivers, and the Winlator container environment remain part of the separately installed runtime app. Install and configure a compatible Winlator build on the device before using the runtime controls.
 
-The resolution, FPS, and control preferences in AstraNS are saved locally as a profile guide. They do not directly modify Winlator containers, VSync, DXVK, Box64, or the runtime's touch overlay.
+The shortcut hand-off sends the absolute path of an exported `.desktop` file in the `frontend_desktop_path` intent extra. This is a front-end integration convention, not a guaranteed public API supported by every Winlator release. A runtime build that does not recognize this extra may simply open its main screen; in that case, launch the game from inside Winlator. AstraNS does not claim that shortcut auto-launch works on unverified runtime builds.
 
-Only use game files that you own or are otherwise authorized to use.
+The resolution, FPS, and control preferences in AstraNS are saved locally as a profile guide. They do not directly modify Winlator containers, VSync, DXVK, Box64 presets, or the runtime's touchscreen overlay. Only use game files that you own or are otherwise authorized to use.
 
 ## Build APK with GitHub Actions
 
