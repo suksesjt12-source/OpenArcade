@@ -7,12 +7,12 @@ plugins {
 
 android {
     namespace = "off.kys.openarcade"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "id.suksesjt12.astranslauncher"
         minSdk = 23
-        targetSdk = 37
+        targetSdk = 36
         versionCode = 4
         versionName = "0.1.0"
 
