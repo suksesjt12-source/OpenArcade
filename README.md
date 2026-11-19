@@ -35,7 +35,7 @@ The workflow runs `./gradlew assembleGithubDebug`. The generated APK is uploaded
 
 ## Local build
 
-Requirements: JDK 17 and Android SDK platform 37.
+Requirements: JDK 17 and Android SDK platform 36.
 
 ```bash
 chmod +x ./gradlew
