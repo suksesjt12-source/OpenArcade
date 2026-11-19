@@ -17,8 +17,8 @@ import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.FadeTransition
 import cafe.adriel.voyager.transitions.SlideTransition
 import off.kys.openarcade.core.ui.theme.OpenArcadeTheme
-import off.kys.openarcade.features.games_launcher.ui.GamesLauncherScreen
 import off.kys.openarcade.features.games_launcher.ui.GamesLauncherViewModel
+import off.kys.openarcade.features.astra.AstraHomeScreen
 import off.kys.openarcade.features.settings.ui.ScreenOrientation
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
@@ -75,7 +75,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 OpenArcadeTheme {
-                    Navigator(GamesLauncherScreen()) { navigator ->
+                    Navigator(AstraHomeScreen()) { navigator ->
                         if (data.reduceAnimations) {
                             FadeTransition(navigator)
                         } else {
